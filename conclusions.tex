@@ -1,0 +1,31 @@
+\section{Conclusions and Future Work}
+We have demonstrated\dots
+
+\paragraph{Future Work}
+Developments demonstrated in this paper open up exciting perspectives
+for future research.
+\begin{itemize}
+  \item Do something with the semantics preservation.  We need to
+    define semantics for Agda's internal syntax (or the subset
+    that is being used to embed the DSL).  Then define the mapping
+    from the target language syntax into Agda's internal syntax.
+    Prove that extraction preserves the semantics for all the valid
+    inputs.  In this case the only point of failure would be the
+    mapping, which is much smaller than the entire extractor.
+  \item Consider irrelevance annotations to function arguments.
+    Agda makes it possible to annotate function arguments as irrelevant,
+    meaning that it is guaranteed that they are only used during
+    typechecking and may be erased at runtime.  Right now such annotations
+    are ignored, but such erasures would benefit performance.
+  \item Support let constructs in the internal syntax.  Currently
+    let-s in Agda are treated purely as a syntactic sugar.  After
+    desugaring all the lets are inlined, which makes the terms
+    very large, and has a negative impact on performance when
+    being executed without any optimisations.  Adding lets to the
+    internal syntax would solve this problem, unfortunately this is
+    far from trivial, as such a change generates enormous changes
+    in the typechecker.
+  \item Elegant extraction of recursive functions defined via
+    well-founded recursion.
+\end{itemize}
+

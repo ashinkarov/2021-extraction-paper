@@ -1,0 +1,440 @@
+%% For double-blind review submission, w/o CCS and ACM Reference (max submission space)
+\documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+%% For double-blind review submission, w/ CCS and ACM Reference
+%\documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true}
+%% For single-blind review submission, w/o CCS and ACM Reference (max submission space)
+%\documentclass[acmsmall,review]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+%% For single-blind review submission, w/ CCS and ACM Reference
+%\documentclass[acmsmall,review]{acmart}\settopmatter{printfolios=true}
+%% For final camera-ready submission, w/ required CCS and ACM Reference
+%\documentclass[acmsmall]{acmart}\settopmatter{}
+
+
+%% Journal information
+%% Supplied to authors by publisher for camera-ready submission;
+%% use defaults for review submission.
+\acmJournal{PACMPL}
+\acmVolume{1}
+\acmNumber{CONF} % CONF = POPL or ICFP or OOPSLA
+\acmArticle{1}
+\acmYear{2018}
+\acmMonth{1}
+\acmDOI{} % \acmDOI{10.1145/nnnnnnn.nnnnnnn}
+\startPage{1}
+
+%% Copyright information
+%% Supplied to authors (based on authors' rights management selection;
+%% see authors.acm.org) by publisher for camera-ready submission;
+%% use 'none' for review submission.
+\setcopyright{none}
+%\setcopyright{acmcopyright}
+%\setcopyright{acmlicensed}
+%\setcopyright{rightsretained}
+%\copyrightyear{2018}           %% If different from \acmYear
+
+%% Bibliography style
+\bibliographystyle{ACM-Reference-Format}
+%% Citation style
+%% Note: author/year citations are required for papers published as an
+%% issue of PACMPL.
+\citestyle{acmauthoryear}   %% For author/year citations
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Note: Authors migrating a paper from PACMPL format to traditional
+%% SIGPLAN proceedings format must update the '\documentclass' and
+%% topmatter commands above; see 'acmart-sigplanproc-template.tex'.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%% Some recommended packages.
+\usepackage{booktabs}   %% For formal tables:
+                        %% http://ctan.org/pkg/booktabs
+\usepackage{subcaption} %% For complex figures with subfigures/subcaptions
+                        %% http://ctan.org/pkg/subcaption
+
+% Add definitions for abbreviations like e.g.; i.e; etc. with
+% correct spacing depending on the parameters.  In this case
+% `all' exposes all the definitions of the package, and `british'
+% makes sure that there is no comma after e.g. or i.e.
+\usepackage[all,british]{foreign}
+
+\usepackage{fontspec}
+%\defaultfontfeatures{Scale=MatchLowercase}
+%\setmonofont[Color={0019D4}]{DejaVu Sans Mono}
+%% poor man's solution for the DejaVu font:
+%\setmonofont[Color={0019D4},ExternalLocation]{DejaVuSansMono.ttf}
+
+% \usepackage{polyglossia}
+% \setmainlanguage[spelling=new,latesthyphen=true]{UKenglish}
+% %\hyphenpenalty=500 % default 50
+% %\tolerance=400      % default 200
+
+
+\newcommand*{\aplfont}{\defaultfontfeatures{Scale=MatchLowercase}%
+\setmonofont[Color={0019D4}]{DejaVu Sans Mono}}
+\newcommand{\apl}[1]{{\aplfont\texttt{#1}}}
+
+\usepackage{mathpartir}
+
+\usepackage{todonotes}
+
+\usepackage{agda}
+\usepackage{newunicodechar}
+\newunicodechar{∷}{::}
+\newunicodechar{→}{\ensuremath{\to}}
+\newunicodechar{ω}{\ensuremath{\omega}}
+\newunicodechar{⊎}{\ensuremath{\uplus}}
+\newunicodechar{≔}{\ensuremath{\coloneqq}}
+\newunicodechar{∎}{\ensuremath{\blacksquare}}
+\newunicodechar{≟}{\ensuremath{\stackrel{?}{=}}}
+\newunicodechar{ᵣ}{\ensuremath{_r}}
+\newunicodechar{ₗ}{\ensuremath{_l}}
+\newunicodechar{▴}{\ensuremath{\blacktriangle}}
+\newunicodechar{▾}{\ensuremath{\blacktriangledown}}
+
+
+% Some shortcut commands for agda symbols
+\newcommand{\AD}[1]{\AgdaDatatype{#1}}
+\newcommand{\AC}[1]{\AgdaInductiveConstructor{#1}}
+\newcommand{\AF}[1]{\AgdaFunction{#1}}
+\newcommand{\AB}[1]{\AgdaBound{#1}}
+\newcommand{\AK}[1]{\AgdaKeyword{#1}}
+\newcommand{\AR}[1]{\AgdaField{#1}}
+\newcommand{\AS}[1]{\AgdaSymbol{#1}}
+
+% \usepackage{ifthen}
+%
+% % Insert extra space before some tokens.
+% \DeclareRobustCommand{\AgdaFormat}[2]{%
+%   \ifthenelse{
+%     \equal{#1}{≡⟨} \OR
+%     \equal{#1}{≡⟨⟩} \OR
+%     \equal{#1}{∎}
+%   }{\ }{}#2}
+
+
+\begin{document}
+
+%% Title information
+\title[]{DSL Extraction in Agda}         %% [Short Title] is optional;
+                                        %% when present, will be used in
+                                        %% header instead of Full Title.
+%\titlenote{with title note}             %% \titlenote is optional;
+                                        %% can be repeated if necessary;
+                                        %% contents suppressed with 'anonymous'
+%\subtitle{Subtitle}                     %% \subtitle is optional
+%\subtitlenote{with subtitle note}       %% \subtitlenote is optional;
+                                        %% can be repeated if necessary;
+                                        %% contents suppressed with 'anonymous'
+
+
+%% Author information
+%% Contents and number of authors suppressed with 'anonymous'.
+%% Each author should be introduced by \author, followed by
+%% \authornote (optional), \orcid (optional), \affiliation, and
+%% \email.
+%% An author may have multiple affiliations and/or emails; repeat the
+%% appropriate command.
+%% Many elements are not rendered, but should be provided for metadata
+%% extraction tools.
+
+%% Author with single affiliation.
+\author{First1 Last1}
+\authornote{with author1 note}          %% \authornote is optional;
+                                        %% can be repeated if necessary
+\orcid{nnnn-nnnn-nnnn-nnnn}             %% \orcid is optional
+\affiliation{
+  \position{Position1}
+  \department{Department1}              %% \department is recommended
+  \institution{Institution1}            %% \institution is required
+  \streetaddress{Street1 Address1}
+  \city{City1}
+  \state{State1}
+  \postcode{Post-Code1}
+  \country{Country1}                    %% \country is recommended
+}
+\email{first1.last1@inst1.edu}          %% \email is recommended
+
+%% Author with two affiliations and emails.
+\author{First2 Last2}
+\authornote{with author2 note}          %% \authornote is optional;
+                                        %% can be repeated if necessary
+\orcid{nnnn-nnnn-nnnn-nnnn}             %% \orcid is optional
+\affiliation{
+  \position{Position2a}
+  \department{Department2a}             %% \department is recommended
+  \institution{Institution2a}           %% \institution is required
+  \streetaddress{Street2a Address2a}
+  \city{City2a}
+  \state{State2a}
+  \postcode{Post-Code2a}
+  \country{Country2a}                   %% \country is recommended
+}
+\email{first2.last2@inst2a.com}         %% \email is recommended
+\affiliation{
+  \position{Position2b}
+  \department{Department2b}             %% \department is recommended
+  \institution{Institution2b}           %% \institution is required
+  \streetaddress{Street3b Address2b}
+  \city{City2b}
+  \state{State2b}
+  \postcode{Post-Code2b}
+  \country{Country2b}                   %% \country is recommended
+}
+\email{first2.last2@inst2b.org}         %% \email is recommended
+
+
+%% Abstract
+%% Note: \begin{abstract}...\end{abstract} environment must come
+%% before \maketitle command
+\begin{abstract}
+  Most practical programming languages of today prioriterise 
+  performance and usability over safety.  As a result, many
+  useful correctness invariants cannot be expressed in the given
+  language, typically due to weakness of the chosen type system.
+  We are looking for non-invasive verification: how to
+  guarantee a property about the given program without any modifications
+  to the language toolchain.
+
+  We study an approach when a programming language is shallowly
+  embedded into a theorem prover, and dependent types are used
+  to encode the properties of interest.   Bringing the embedded
+  langauge and the properties back into the original language
+  is the main focus of this work.  We propose a generic extraction
+  mechanism that we implement in Agda that is based on the concept
+  of reflection.  Making it possible to translate any shallowly
+  embedded language in the target backend without the necessity
+  to modify the theorem prover.
+  We demonstrate our framework in action by encoding three languages:
+  Kaleidoskope, SaC and a subset of APL, culminating in the implementation
+  and extraction of a convolutional neural network.
+\end{abstract}
+
+
+%% 2012 ACM Computing Classification System (CSS) concepts
+%% Generate at 'http://dl.acm.org/ccs/ccs.cfm'.
+\begin{CCSXML}
+<ccs2012>
+<concept>
+<concept_id>10011007.10011006.10011008</concept_id>
+<concept_desc>Software and its engineering~General programming languages</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10003456.10003457.10003521.10003525</concept_id>
+<concept_desc>Social and professional topics~History of programming languages</concept_desc>
+<concept_significance>300</concept_significance>
+</concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Software and its engineering~General programming languages}
+\ccsdesc[300]{Social and professional topics~History of programming languages}
+%% End of generated code
+
+
+%% Keywords
+%% comma separated list
+\keywords{keyword1, keyword2, keyword3}  %% \keywords are mandatory in final camera-ready submission
+
+
+%% \maketitle
+%% Note: \maketitle command must come after title commands, author
+%% commands, abstract environment, Computing Classification System
+%% environment and commands, and keywords command.
+\maketitle
+
+\section{Introduction}
+
+It is very satisfying when a program comes with a formal proof of its
+correct behaviour.  We can be confident that it implements the right algorithm,
+and we can eliminate many subsequent checks if we use the prorgam as a building
+block of a larger project.  Assume we wnat to provide such formal guarnatees
+about some implementation --- how can we do this?
+
+Unfortunately, most widely used programming languages of today are not equipped
+with such capabilities.  For example, in C or Python, there is no way to give
+a proof that a certain function never throws division by zero exceptions or
+that it always indexes arrays within bounds.  Type systems of these languages
+are to weak to support such invariants, as they exclusively focus on verifying
+data domains.
+
+% 
+% The more correctness guarantees a programming language provides, the more
+% difficult it is to use.  The reason is that a programmer has to do extra work
+% to establish and maintain program invariants of interest.  Unfortunately, such
+% extra work does not always pay off.  Correctness, at times, is orthogonal to
+% functionality: if the program does not crash, it does not mean that it searches
+% the given query on the internet.
+% 
+% As nobody seem to know how to write an invariant ``returns a meaningful
+% response to a search query'', a lot of practical programming languages focus on
+% usability, providing only rudimentary means for expressing correctness invariants.
+% For example, C or Python are undoubtfully useful, but neither of the languages
+% makes it possible to guarantee lack of division by zero or in-bound array
+% indexing statically.
+% 
+
+
+While we can imagine extending the given type system, it is unlikely to work
+well for an existing langauge.  Such an extension would touch on a very fundamental
+design decisions of the language and likely to generate enormous changes in the
+existing toolchains.  Adoption of such new features within the existing code
+is also unclear.
+
+In this paper we are investigating a less invasive approach on stating program
+invariants that cannot be internalised in the given language.  We propose the
+following three steps:
+\begin{enumerate}
+        \item encode the language (or its subset) in a theorem prover;
+        \item use dependent types to formulate and prove required properties;
+                and
+        \item \emph{extract} the embedded program and verified properties back
+                into the original language.
+\end{enumerate}
+
+
+We briefly summarise the main challenges associated with each step.
+
+\paragraph{Embedding}
+Encoding a target language within a host language is commonly referred as 
+\emph{embedding}.
+Two kinds of embeddings are commonly distinguished~\cite{}: deep and shallow.
+Deep embedding encodes the target language AST and usually offers evaluation
+function that maps expressions of the target language into expressions
+of the host language.  In case of shallow embedding, each target language
+construction gets a function of the host language.  As a result, we can encode
+target language programs in the host language, but we do not necessarily get
+a handle on the representation of these.  For more details refer to~\cite{}.
+
+With deep embedding we have a full access to program representation, so it is
+much easier to transform/manipulate embedded programs.  However, the type system
+of the target language has to be encoded as well.  A number
+of examples~\cite{} show us how advanced type systems such as
+System-F~\cite{} or dependent types with families~\cite{} give rise to tagless 
+interpreters~\cite{}, essentially allowing us to share the host type system for
+typechecking target programs.  While this works beautifully for target languages with
+simple type systems, the embedding gets quite ugly~\cite{} when the target type
+system is dependently typed.  Impressive efforts have been taken~\cite{} to show
+that the encoding is possible, but it is far from being practical.
+
+In this work we consider shallow embedding only and we use Agda~\cite{} as our
+host language.
+
+\paragraph{Verifying} In the proposed system, dependent types play the key role
+when it comes to verification.  First, we expect that all properties/invariants
+about target programs are presented to the system as dependent types.  Note that
+providing a proof of the properties is a job of a programmer --- dependently
+typed system do not necessarily automate this step.  However, they do provide a
+way to write the proof down, which in systems like Agda is not different from
+writing a regular program~\cite{}.
+
+Sometimes extrinsic verification~\cite{} of the target programs might be
+insufficient, and we would have to use intrinsic approaches, \ie{} to interleave
+the actual data and its constraints.  For example, ensuring that the function
+$f(a, b) = a / (a - b)$ does not throw division by zero exception, we would have
+to add the $a \nequiv b$ constraint to $f$.  Surely, all the functions that use
+$f$ would have to respect this constraint.  In order to communicate this information,
+it is important to ensure that our embedded language supports the notion of
+dependent types.  Once again, that is where using shallow embedding helps
+significantly.
+
+\paragraph{Extracting}
+One of the difficulties with the steps proposed so far lies in the inability
+to use the verified target program outside of the theorem prover.  The key
+contribution of this work is a solution to this problem.  We propose program extraction
+technique that makes it possible to translate shallowly-embedded languages into
+a target language of choice.  The extraction process is based on the reflection
+capabilities~\cite{} of Agda, \ie{} a built-in metaprogramming facility that makes
+it possible to obtain data representation of any given Agda term.  Esentially,
+extraction process can be seen as a translation of one term representation
+into another.
+
+Specifying extraction of Agda terms in Agda offers a number of advantages.  First,
+lack of external dependencies and full access to the extraction process.  Typically,
+in classical compilers, backends are integral parts of the compiler, and while adding
+a new backend or modifying existing one is perfectly possible, it is a non-trivial
+endavour rarely accessible
+from within the programming langauge.  Usually the only interface to the backend
+we have is a set of predefined options.  Secondly, as extractor is a regular Agda
+program, it can use all the advanced type system features of the langauge, so it
+can encode as much properties about extraction correctness as needed.  Finally,
+extraction plays very nicely with user-defined rewriting rules, which make it possible
+to turn equality of two expressions into computation rule.  For example, while it
+is possible to prove that double reverse of a list is identity, it is not a computation
+rule.  By turning this into a rewriting rule, double reverses would be eliminated
+from the terms prior extraction, resulting in a potentially better performing
+target programs.
+% TODO mention about turning proofs itno user-defined constraint or assertions 
+%      depending on the capabilities of the backend language.
+
+
+\paragraph{Applications} We demonstrate the propsed approach on two languages:
+Kaleidoskope~\cite{} and SaC~\cite{}.  The former is a minimalist langauge
+that is ofetn used as an example when creating LLVM~\cite{} backends.  We follow
+the tradition and use it to demonstrate the basic mechanisms.  SaC is a high-performance
+array language; it generates efficient code for various backends, but it is rather
+restrictive.  The main focus lies in guarnteeng in-bound array indexing.  In order
+to do so we have to track shapes of the arrays in types, which requires our
+embeeded langauge to be dependently-typed.  Finally, we demonstrate an embedding
+of a small subset of APL~\cite{}
+that is sufficient to encode a Convolutional Neural Network (CNN)~\cite{}.
+The main difficulty with APL is that the language is untyped, and the semantics
+of the builtin operators is quite complex.  The main focus of the encoding is that
+we define all the APL operators in terms of embeeded SaC operators, effectively
+obtaining a compiler from a subset of APL to executable binaries.
+
+
+\paragraph{Key Contributions}
+The key contributions of this paper are:
+\begin{itemize}
+    \item We introduce the concept of extraction in Agda that is based on the
+            reflection capabilities of the system and effectively demonstrate
+            how to use dependently-typed meta-programming to create custom
+            backends for embedded languages.
+    \item We demonstrate how the proposed system can be applied, and we use
+            two array languages as an example.  We start with a dependently-typed
+            embedding of a subset of SaC~\cite{}.  We then define a subset of APL
+            in terms of the first embedding.
+    \item We demonstrate our system in action at the example of CNN implemented
+            in APL.  We port the implementation into our system and ensure that
+            it extracts correctly.
+\end{itemize}
+
+The rest of the paper is organised as follows:
+\todo[inline]{FIXME}
+
+\input{latex/background}
+\input{latex/kaleidoskope}
+\input{latex/arraylang}
+\input{latex/aplcnn}
+\input{related}
+\input{conclusions}
+
+
+
+
+%% Acknowledgments
+\begin{acks}                            %% acks environment is optional
+                                        %% contents suppressed with 'anonymous'
+  %% Commands \grantsponsor{<sponsorID>}{<name>}{<url>} and
+  %% \grantnum[<url>]{<sponsorID>}{<number>} should be used to
+  %% acknowledge financial support and will be used by metadata
+  %% extraction tools.
+  This material is based upon work supported by the
+  \grantsponsor{GS100000001}{National Science
+    Foundation}{http://dx.doi.org/10.13039/100000001} under Grant
+  No.~\grantnum{GS100000001}{nnnnnnn} and Grant
+  No.~\grantnum{GS100000001}{mmmmmmm}.  Any opinions, findings, and
+  conclusions or recommendations expressed in this material are those
+  of the author and do not necessarily reflect the views of the
+  National Science Foundation.
+\end{acks}
+
+
+%% Bibliography
+\bibliography{paper}
+
+
+\end{document}
