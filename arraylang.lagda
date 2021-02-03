@@ -1,4 +1,4 @@
-\section{Array Language}
+\section{\label{sec:array}Array Language}
 \subsection{Functional Arrays}
 \begin{code}[hide]
 module _ where

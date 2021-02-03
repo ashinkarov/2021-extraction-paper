@@ -15,7 +15,7 @@ module _ where
     constructor imap
     field sel : Ix d s → X
 \end{code}
-\section{APL and CNN}
+\section{\label{sec:apl}APL and CNN}
 
 The overall story of this chapter is that if you are trying to
 embed an untyped language, you might hit some expressibility

@@ -5,6 +5,10 @@ module _ where
 \end{code}
 \section{Background}
 \subsection{Agda Basics}
+\todo[inline]{Amongst other things we need to explain with-clauses
+and pattern-matching functions.  Maybe records and their eta-equality.}
+
+
 \subsection{Dependent types}
 \subsection{Reflection and Internal Syntax}
 Reflection is the ability to tern an arbitrary Agda expression
