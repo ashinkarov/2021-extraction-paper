@@ -2,10 +2,10 @@
 open import Data.Nat as ℕ
 open import Data.String using (String; length)
 open import Data.List as 𝕃 hiding (length)
-open import Data.Unit
-open import Data.Bool as 𝔹 hiding (_<_)
+open import Data.Unit hiding (_≟_)
+open import Data.Bool as 𝔹 hiding (_<_; _≟_)
 open import Function
-open import Reflection
+open import Reflection hiding (_≟_)
 module _ where
 postulate
   ⋯ : ∀ {a}{A : Set a} → A
@@ -240,7 +240,7 @@ given that we simplify the terms.
 
 Such a simplification can be conveniently achieved by a standard procedure
 called normalisation~\cite{} which applies reduction rules to terms until
-they turns into values or neutral terms.  The normalisation procedure is
+they turn into values or neutral terms.  The normalisation procedure is
 exposed as a part of reflection API, and the first step of extraction is
 to normalise the term and its type.  As extraction operates at the level
 of function definitions, technically we normalise the type and the body
@@ -250,12 +250,64 @@ Section~\ref{sec:rewriting}, including our modifications to Agda.
 
 \subsection{Controlling Reduction}
 
+The manual run of normalisation suggests that sometimes it would be
+convenient to leave function applications as they are.  For example,
+consider the following program:
+\begin{code}
+  open import Relation.Nullary
+  
+  ex₅ : ℕ → ℕ
+  ex₅ x with x ≟ 42
+  ... | yes _ = 10
+  ... | no  _ = 20
+\end{code}
+The definition of \AF{\_≟\_} in the standard library is quite complex:
+\begin{code}[hide]
+  open import Relation.Binary
+  postulate
+    ≡ᵇ⇒≡ : ∀ m n → T (m ≡ᵇ n) → m ≡ n
+    ≡⇒≡ᵇ : ∀ m n → m ≡ n → T (m ≡ᵇ n)
+    T? : ∀ x → Dec (T x)
+  _≟″_ : Decidable {A = ℕ} _≡_
+\end{code}
+\begin{code}
+  map′ : ∀ {P Q : Set} → (P → Q) → (Q → P) → Dec P → Dec Q ; map′ = ⋯
+  m ≟″ n = map′ (≡ᵇ⇒≡ m n) (≡⇒≡ᵇ m n) (T? (m ≡ᵇ n))
+\end{code}
+(we only give a part of it here as the actual details are not that important).
+These four functions in the body (\eg{} \AF{map′}, \AF{≡ᵇ⇒≡}, \etc{}) are not
+representable in Kaleidoscope, but comparison of natural numbers is.  Generally,
+this is a common pattern when we might represent some target language
+definitions in Agda in a radically different way than in the target language.
+Typically this has to do with proof relevance, like in the above case, but could be also general
+invariant that we attach to objects.  In such cases, we might decide
+to hard-code the mapping of the Agda function into the target language function.
+For example, in this case we map \AF{\_≟\_} into \AC{Eq}.
+
+In order to do this, we have to make sure that normalisation does not expand
+certain definitions.  This is what the second argument (base) to our interface
+function \AF{kompile} is used for --- to specify the list of functions that
+must not reduce during normalisation.
+
+This functionality was not previously available in Agda, so we added two new primitives
+to the reflection API --- \AF{dontReduceDefs} and \AF{onlyReduceDefs} with pull
+request \url{https://github.com/agda/agda/pull/4978}.  The functions have the following
+types:
+\begin{code}
+  onlyReduceDefs : ∀ {a} {A : Set a} → List Name → TC A → TC A ; onlyReduceDefs = ⋯
+  dontReduceDefs : ∀ {a} {A : Set a} → List Name → TC A → TC A ; dontReduceDefs = ⋯
+\end{code}
+and they give us an environment in which any call to \AF{reduce} or \AD{normalise}
+would respect the list of function names given in the first argument.  In case of
+\AF{onlyReduceDefs} function application would reduce only if the function is
+found in the list.  In case of \AF{dontReduceDefs}, function application would
+reduce only if the function is not on the list.  When we normalise the code prior
+extraction we call \AF{dontReduceDefs} \AB{base} \AF{\$} \AF{normalise} \AB{t},
+where \AB{t} is either the type or the term.
 
 
-
-
-\todo[inline]{Here we explain what is the meaning of the arguments
-to kompile, and that we had to extend Agda in order to make this happen}
+% \todo[inline]{Here we explain what is the meaning of the arguments
+% to kompile, and that we had to extend Agda in order to make this happen}
 
 \subsection{Mapping Agda Types}
 \todo[inline]{Here we mainly talk about what do we do with dependent types
