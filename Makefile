@@ -3,8 +3,14 @@ SRC := paper.tex \
        conclusions.tex \
        paper.bib
 
-AGDA := /home/tema/.local/bin/agda
-I := /home/tema/src/agda-stdlib-experimental/src
+# Artem uses custom version of Agda, so this Makefile is
+# conditionalised bases on the name of the machine.
+ifeq ($(shell uname -n),temanbk)
+  AGDA := /home/tema/.local/bin/agda \
+  	  --include-path=/home/tema/src/agda-stdlib-experimental/src
+else
+  AGDA := agda
+endif
 
 all: paper.pdf
 
@@ -14,7 +20,7 @@ paper.tex : latex/background.tex latex/kaleidoskope.tex latex/arraylang.tex \
 	    latex/aplcnn.tex
 
 latex/%.tex : %.lagda
-	$(AGDA) --include-path=$(I) --latex $< #--only-scope-checking $<
+	$(AGDA) --latex $< #--only-scope-checking $<
 
 paper.pdf: $(SRC)
 	TEXINPUTS=./latex:$$TEXINPUTS latexmk -pdf -f -pdflatex='xelatex -halt-on-error' $<
