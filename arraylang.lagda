@@ -36,3 +36,4 @@ Consider a simple example:
 
 \subsection{Target Language}
 Our target language is SaC.
+\todo[inline]{Steal the language introduction from one of the papers.}
