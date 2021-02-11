@@ -5,7 +5,6 @@ open import Data.List as 𝕃 hiding (length)
 open import Data.Unit hiding (_≟_)
 open import Data.Bool as 𝔹 hiding (_<_; _≟_)
 open import Function
-open import Reflection hiding (_≟_)
 module _ where
 postulate
   ⋯ : ∀ {a}{A : Set a} → A
@@ -47,10 +46,12 @@ Prog = Err String
 SKS : Set → Set
 SKS = ⋯
 
-module Extract (kompile-fun : Type → Term → Name → SKS Prog) where
-  macro
-    kompile : Name → Names → Names → (Term → TC ⊤)
-    kompile n base skip hole = ⋯
+module Hide where
+  open import Reflection
+  module Extract (kompile-fun : Type → Term → Name → SKS Prog) where
+    macro
+      kompile : Name → Names → Names → (Term → TC ⊤)
+      kompile n base skip hole = ⋯
 \end{code}
 The parameter \AF{kompile-fun} is the actual language-specific
 function that would do the extraction.  The interface function
@@ -86,6 +87,7 @@ expression.  A declaration of external function is given by name and
 arguments.  A possible encoding of Kaleidoskope's AST follow:
 
 \begin{code}
+module Kaleid where
   Id = String
 
   data Op : Set where
@@ -294,6 +296,8 @@ to the reflection API --- \AF{dontReduceDefs} and \AF{onlyReduceDefs} with pull
 request \url{https://github.com/agda/agda/pull/4978}.  The functions have the following
 types:
 \begin{code}
+module Funs where
+  open import Reflection using (Name; TC)
   onlyReduceDefs : ∀ {a} {A : Set a} → List Name → TC A → TC A ; onlyReduceDefs = ⋯
   dontReduceDefs : ∀ {a} {A : Set a} → List Name → TC A → TC A ; dontReduceDefs = ⋯
 \end{code}
@@ -305,11 +309,114 @@ reduce only if the function is not on the list.  When we normalise the code prio
 extraction we call \AF{dontReduceDefs} \AB{base} \AF{\$} \AF{normalise} \AB{t},
 where \AB{t} is either the type or the term.
 
-
 % \todo[inline]{Here we explain what is the meaning of the arguments
 % to kompile, and that we had to extend Agda in order to make this happen}
 
 \subsection{Mapping Agda Types}
+
+The next step after normalisation is to translate the type signature of Agda
+function into the target language.  In case of Kaleidoscope, we do not have
+actual type annotations in the language, but we still need to verify whether
+the argument (and return) types are from the right universe.  Including the
+check that the function is first-order.
+
+We achieve this using the \AF{kompile-ty} function that has the following
+structure:
+\begin{code}[hide]
+module KompTy where
+  open import Reflection hiding (TC; return; _>>=_; _>>_)
+  open import Reflection.Term
+  open import Data.Fin
+  open Kaleid
+
+  SPS : Set → Set ; SPS = ⋯
+  sps-kompile-term : Term → SPS $ Err Expr ; sps-kompile-term = ⋯
+
+  record PS : Set where
+    field cur : String
+
+  record Assrt : Set
+  infixl 4 _<$>_
+  _<$>_ : ∀{A B : Set} → (A → B) → SPS A → SPS B ; _<$>_ = ⋯
+  get : SPS PS ; get = ⋯
+  modify : ∀ {i : ⊤} → (PS → PS) → SPS ⊤ ; modify = ⋯
+  ke : ∀ {X} → String → SPS (Err X) ; ke = ⋯
+  return : ∀ {X} → X → SPS X ; return = ⋯
+  _>>=_ : ∀ {X Y} → SPS X → (X → SPS Y) → SPS Y ; _>>=_ = ⋯
+  _>>_ : ∀ {X Y} → SPS X → SPS Y → SPS Y ; x >> y = x >>= const y
+\end{code}
+\begin{code}
+  record Assrt where
+    constructor mk
+    field v : Id ; a : Expr
+
+  _p+=a_ : PS → Assrt → PS ; _p+=a_ = ⋯
+
+  kompile-ty : Type → (pi-ok : Bool) → SPS (Err ⊤)
+  kompile-ty (def (quote ℕ) args) _ = return $ ok tt
+  kompile-ty (def (quote Fin) (arg _ x ∷ [])) _ = do
+    ok p ← sps-kompile-term x where error x → ke x
+    v ← PS.cur <$> get
+    modify $ _p+=a (mk v (BinOp Lt (Var v) p))
+    return $ ok tt
+  kompile-ty _ _ = ⋯
+\end{code}
+It operates within the state monad \AD{SPS} where the state is given
+by the type \AD{PS} (pi-type state).  As we traverse the type signature
+of a function (the pi type) we collect some information.  For non-dependent
+types such as \AD{ℕ}, we simply verify whether the type is supported.
+In the above example the first clause of the pattern-matching function
+says that \AD{ℕ} is good, and we add such patterns for all the other
+non-dependent types.  For dependent types we have to do a bit more work.
+
+One of the important features of extraction is the ability to propagate
+invariants from Agda down to the target language.  Recall that our original
+goal was to ensure that the function behaves according to the specification.
+This is ensured by the fact that our function typechecks in Agda.  Each
+dependent type in the function signature can be thought of as a (n-fold)
+relation that encodes some facts about its arguments.  This knowledge
+can be very useful to the target language.  For example this can be
+used in optimisations to generate a better performing code.  Therefore,
+we turn such relations into assertions in the target language.
+
+Apart from using those in optimisations, these assertions may be useful
+in case of partial program extraction.  For example, assume that function
+\begin{code}[inline]
+  f : (x : ℕ) → x > 0 → ℕ
+\end{code}
+\begin{code}[hide]
+  f = ⋯
+\end{code}
+takes a non-zero argument.  This property would be respected in any
+uses of \AF{f} within Agda.  However, in the extracted code, the relation
+between the first and the second argument will be lost.  Therefore, one
+might call extracted \AF{f} with 0 as a first argument.  Assertion would
+help to maintain the right interface, turning a static check into a
+dynamic one.
+
+When generating assertions from the relation we typically have the following
+two options: we can find an encoding for the witness and a way to verify
+that arguments are related by the witness.  The other common case is that
+our predicate is decidable, and within the function we do not use its
+structure.  In this case, the encoding of the predicate is the unit type,
+and we can use the decision procedure in the assertion.
+
+In case of \AF{Fin} we are using the first approach.  Recall that \AF{Fin}
+is a predicate on \AF{ℕ} and the structure of its witness is given by two
+constructors: \AC{zero} and \AC{suc}.  Therefore, we are encoding the witness
+using the natural number, and the procedure on verifying that the predicate
+holds is comparison that this number is less than the argument to \AF{Fin}.
+This is exactly what \AF{kompile-ty} does in \AF{Fin} case.  We extract the
+argument \AB{x}, ensuring that it succeeds.  Then we get the name of the
+function argument referring to \AR{cur} field of our state.  Finally, we modify
+the state by adding a constraint on the corresponding function argument.
+
+\todo[inline]{For \AD{\_≡\_} and \AD{\_<\_}, which are both decidable,
+we use the unit value instead of the witness, and we use the decision
+procedure in the assertion.}
+
+
+
 \todo[inline]{Here we mainly talk about what do we do with dependent types
 and how do we collect constraints, and the role of assertions that we
 generate --- they may be used as hints for target compiler optimisations.}
