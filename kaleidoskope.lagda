@@ -407,19 +407,79 @@ constructors: \AC{zero} and \AC{suc}.  Therefore, we are encoding the witness
 using the natural number, and the procedure on verifying that the predicate
 holds is comparison that this number is less than the argument to \AF{Fin}.
 This is exactly what \AF{kompile-ty} does in \AF{Fin} case.  We extract the
-argument \AB{x}, ensuring that it succeeds.  Then we get the name of the
-function argument referring to \AR{cur} field of our state.  Finally, we modify
-the state by adding a constraint on the corresponding function argument.
+argument \AB{x} (obtaining a Kaleidoscope expression), ensuring that it
+succeeds.  Then we get the name of the
+function argument referring to \AR{PS.cur} field of our state.  Finally,
+we modify the state by adding a constraint on the corresponding function
+argument.
 
-\todo[inline]{For \AD{\_≡\_} and \AD{\_<\_}, which are both decidable,
-we use the unit value instead of the witness, and we use the decision
-procedure in the assertion.}
+As \AD{\_≡\_} and \AD{\_<\_} are both decidable for natural numbers,
+we always witnesses of these types with the unit value (natural number 1).
+In the assertion we use the decision procedure, that returns a \AD{Dec} type.
+Which we interpret as a boolean value: 1 for \AC{yes} and 0 for \AC{no}.
+Pattern matching on the value of \AD{\_≡\_} is straight-forward as there
+is only one constructor.  On the other hand, constructors of the \AD{\_<\_}
+type encodes essentially the difference between the arguments, which we
+have chosen to ignore in the encoding.  Therefore we do not support pattern
+matching on the values of the \AD{\_<\_}, as otherwise we were to lose
+information, e.g. consider the following function:
+\begin{code}
+  ex₆ : ∀ {a b} → a ℕ.< b → ℕ
+  ex₆ (s≤s z≤n) = 1
+  ex₆ (s≤s (s≤s a<b)) = 1 ℕ.+ ex₆ (s≤s a<b)
+\end{code}
+Therefore we are only allowed to pass the inequality around, but not
+``look inside''.  This choice could be surely revised, however as we
+will see later, we mostly use inequalities as a static assertion rather
+than a runtime value.
+
+Finally, the return type of the function also generates an assertion
+using the same rules and attaches it prior function return.  For example,
+the following function:
+\begin{code}[hide]
+module ExFin where
+  open import Data.Fin using (Fin; fromℕ<)
+  open import Data.Nat.Properties
+\end{code}
+\begin{code}
+  ex₇ : (n : ℕ) → Fin (1 + n * n)
+  ex₇ n = fromℕ< $ n<1+n (n * n)
+\end{code}
+Extracts into the following Kaleidoscope code:
+\begin{verbatim}
+def ex7 (x_1):
+  let n = x_1
+  let __ret = (n) * (n)
+  let __ret_assrt = assert ((__ret) < ((1) + ((x_1) * (x_1))))
+  __ret
+\end{verbatim}
+
+Let us walk through this example.  First, notice that we have generated
+assertion for the return value, which is coming from the type signature
+of \AF{ex₇}.  How did we manage to turn the body of the function into
+multiplication?  Let us recall the types of both standard library functions:
+\begin{code}
+module Signatures where
+  open import Data.Fin using (Fin)
+  fromℕ< : ∀ {m n} → m ℕ.< n → Fin n ; fromℕ< = ⋯
+  n<1+n : ∀ n → n ℕ.< 1 + n ; n<1+n = ⋯
+\end{code}
+The \AF{fromℕ<} function turns a proof of \AB{m} \AF{<} \AB{n} into
+\AF{Fin} \AB{n} type.  As we are encoding \AF{Fin}s as natural numbers,
+we could take a shortcut in the extractor and specialcase \AF{fromℕ<}
+just to return the left hand side of the \AF{\_<\_} argument.  Luckily,
+with dependent types we are always going to have access to the arguments
+of the relation.  In this particular case, the first hidden argument \AB{m}
+is the value that we are after.  Therefore, with the chosen encoding,
+extraction of the \AF{fromℕ<} returns the first argument and ignores all
+the other arguments.  Note that by doing so we are not loosing any information,
+as the proof here is merely asserting that \AB{m} fits the specification.
+This happy coincidence allowing us to ignore runtime-irrelevant relations
+is very insightful, as it helps to avoid a lot of unnecessary work and
+keep the extracted code more efficient.
 
 
 
-\todo[inline]{Here we mainly talk about what do we do with dependent types
-and how do we collect constraints, and the role of assertions that we
-generate --- they may be used as hints for target compiler optimisations.}
 
 \subsection{Pattern Matching}
 \todo[inline]{Explain how do we turn a pattern-matching function definition
