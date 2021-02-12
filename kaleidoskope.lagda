@@ -488,8 +488,38 @@ that we explained the telescopes (or explain them here), and we can
 reiterate absurd patterns here.}
 
 \subsection{Monadic Workaround for Lets}
+One of the unfortunate design choices of the Agda internal language is
+the lack of let constructs.  All the lets we use in the code are eliminated
+by substituting the bound expression in the body of the let.  While
+this is sound semantically, it may lead to unnecessary code duplication:
+\begin{code}
+  ex₈ : ℕ → ℕ
+  ex₈ x = let a = x * x + 3 * x + 5 in a + a
+  --    ⇒ (x * x + 3 * x + 5) + (x * x + 3 * x + 5)
+\end{code}
+While this is too large of a change in Agda, we can use the following
+elegant workaround.  Agda's do-notation is a syntactic sugar that
+expands if we define two operations \AF{\_>>=\_} and \AF{return}
+for some monad~\cite{}.  This includes the identity monad as well:
+\begin{code}
+module Monadic where
+  _>>=_ : ∀ {ℓ₁ ℓ₂}{A : Set ℓ₁}{B : Set ℓ₂} → A → (A → B) → B
+  a >>= f = f a
+  return : ∀ {ℓ}{A : Set ℓ} → A → A
+  return a = a
+\end{code}
+With such definitions at hand we can use do-notation instead of lets,
+given that we add support for the above bind and return in our extractor.
+\begin{code}
+  ex₈′ : ℕ → ℕ
+  ex₈′ x = do
+    a ← x * x + 3 * x + 5
+    return $ a + a
+\end{code}
+
+
 \todo[inline]{Explain that we can workaround the lack of lets in the internal
-syntax by introducing a fake monad; give an example.}
+syntax by introducinog a fake monad; give an example.}
 
 
 \subsection{\label{sec:rewriting}Rewriting}
