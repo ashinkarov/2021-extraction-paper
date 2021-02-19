@@ -13,28 +13,22 @@ postulate
 \end{code}
 \section{Extraction Framework}
 
-On a very high level, extraction process translates reflected
-Agda term into the backend language of interest.  However, when
-considering actual details, the process becomes much more challenging.
-We have challenges of embedding:
-\begin{enumerate}
-  \item how much do we want to mimic the original syntax? See
-  Sections~\ref{sec:array} and~\ref{sec:apl} for more details.
-  \item how do we make sure that our embedding is normalisation-friendly,
-  so that trivial optimisations are performed prior the extraction.
-\end{enumerate}
-We have challenges related to Agda's choice of internal representation:
-sometimes we do not have the necessary information, or we cannot control
-what information is being reflected.  In such cases we had to modify
-Agda to accommodate our needs.
-Finally, we have reflection challenges that have to do with the actual
+On a high level, extraction translates reflected
+Agda terms into corresponding terms in the target language,
+but the devil is hidden in the details.  Design of embedding
+is a difficult balance between mimicing the structure of the
+target language, ease of proving facts about embedded programs,
+and normalisation friendliness --- can we make the host language
+to optimise our code prior extraction?  Sometimes we find that the
+existing reflection interface of Agda is missing desirable
+functionality.  In those case we extend Agda to accommodate our
+needs. Finally, we have reflection challenges that have to do with the actual
 translation: matching embedded encoding against the actual language or
 dealing with type difference in type systems.
 
-In this section we start with the general overview of the framework
-and mainly focus on language-independent parts of the extraction.
-To facilitate with examples we are going to use a very simple language
-called Kaleidoscope~\cite{}.
+In this section we start with a general overview of the framework
+focusing on language-independent parts of extraction.  In order
+to keep examples simple, we use a minimalist language called Kaleidoscope~\cite{}.
 
 \paragraph{Overview of the framework}
 The entry point of the extraction is the following parametrised module:
@@ -47,9 +41,12 @@ Prog = Err String
 -- State Monad with some commonly pre-defined fields
 SKS : Set → Set
 SKS = ⋯
-
+\end{code}
+\begin{code}[hide]
 module Hide where
   open import Reflection
+\end{code}
+\begin{code}
   module Extract (kompile-fun : Type → Term → Name → SKS Prog) where
     macro
       kompile : Name → Names → Names → (Term → TC ⊤)
