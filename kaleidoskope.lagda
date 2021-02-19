@@ -1,7 +1,9 @@
 \begin{code}[hide]
+{-# OPTIONS --rewriting #-}
+
 open import Data.Nat as ℕ
-open import Data.String using (String; length)
-open import Data.List as 𝕃 hiding (length)
+open import Data.String using (String) --; length)
+open import Data.List as 𝕃 using (List; []; _∷_; [_])
 open import Data.Unit hiding (_≟_)
 open import Data.Bool as 𝔹 hiding (_<_; _≟_)
 open import Function
@@ -132,6 +134,7 @@ a function:
 \begin{code}
 module Problem where
   open import Data.Nat.Show renaming (show to showNat)
+  open import Data.String using (length)
   ex : ℕ → ℕ
   ex x = length (showNat x)
 \end{code}
@@ -152,6 +155,7 @@ module Univ where
   open import Relation.Binary.PropositionalEquality
   open import Data.Product
   open import Data.Nat.DivMod
+  open import Data.String using (length)
   data Ty : Set ; ⟦_⟧ : Ty → Set
   data Ty where
     nat   : Ty
@@ -312,7 +316,7 @@ where \AB{t} is either the type or the term.
 % \todo[inline]{Here we explain what is the meaning of the arguments
 % to kompile, and that we had to extend Agda in order to make this happen}
 
-\subsection{Mapping Agda Types}
+\subsection{\label{sec:maptypes}Mapping Agda Types}
 
 The next step after normalisation is to translate the type signature of Agda
 function into the target language.  In case of Kaleidoscope, we do not have
@@ -482,10 +486,392 @@ keep the extracted code more efficient.
 
 
 \subsection{Pattern Matching}
-\todo[inline]{Explain how do we turn a pattern-matching function definition
-into a single definition with a conditional inside.  We have to make sure
-that we explained the telescopes (or explain them here), and we can
-reiterate absurd patterns here.}
+Many target languages do not support function
+definitions in a pattern-matching style, whereas in Agda it is very
+common.  Most of data structures are inductive, and pattern-matching
+is a very natural way of traversing them. It also helps the termination
+checker to identify whether recursive calls are structurally
+decreasing~\cite{}.  As a result, turning a list of pattern-matching
+clauses into a single conditional is a common task in extractors.
+
+
+This problem splits naturally into two parts: compute a condition from
+the given clause, and join all such conditions in a single conditional.
+Let us start with the second part.  We define the \AF{kompile-cls} function
+with the following type:
+% TODO we also call kompile-term in this function!
+\begin{code}[hide]
+module Cls where
+  open import Reflection
+  Strings = List String
+  open Kaleid
+\end{code}
+\begin{code}
+  kompile-cls : (cls : Clauses) → (vars : Strings) → (ret : String) → SKS (Err Expr)
+  kompile-cls = ⋯
+\end{code}
+where the first argument is the list of clauses, the second argument is the
+list of variable names, and the last argument is the name of the variable
+we assign the return value to.  The function operates in the \AD{SKS}
+monad as we are extracting the body of each clause, so we need to keep
+the extraction state.  The function traverses clauses in order they appear
+in the definition and combines them in a nested if-then-else chain as
+follows:
+\begin{code}
+  ack : ℕ → ℕ → ℕ                                  -- def ack (x1, x2):
+  ack 0       n       = 1 + n                      --   if x1 == 0: 1 + x2
+  ack (suc m) 0       = ack m 1                    --   else if x1 > 0 && x2 == 0: ack (x1-1) 1
+  ack (suc m) (suc n) = ack m (ack (suc m) n)      --   else: ack (x1-1) (ack x1 (x2-1))
+\end{code}
+While the definition of the function is straight-forward, there are two important
+aspects to notice.  Firstly, notice that in the second predicate we have explicit
+\AB{x1} \AF{>} \AS{0} check, that could have been omitted.  However, if the first
+and the second clauses were swapped, such a comparison with zero must be
+present.  Our current implementation takes minimalist approach and generates
+predicates in the simplest possible form, without optimising extra comparisons
+as above.  Many target languages may perform such an optimisation themselves.
+Also, and more importantly, one of the internal representations of Agda has the
+form, where all the patterns are folded.  Currently it is not exposed via the
+reflection API, but as it works universally for any term, it might be simpler
+to extend the API rather than reimplementing pattern folding.
+
+Secondly, absurd patterns have to be treated with care.  For example, consider
+the following function:
+\begin{code}
+module Ex9 where
+  open import Relation.Binary.PropositionalEquality
+  open import Data.Fin using (Fin; zero; suc)
+
+  ex₉ : (x : ℕ) → x ≡ 0 → (y : ℕ) → x ≡ y → ℕ   -- def ex9(x_1, x_2, x_3, x_4):
+  ex₉ x ()  (suc y) refl                        --   if (x_3) > (0): assert (0)
+  ex₉ x x=0 y       x=y  = y                    --   else: x_3
+\end{code}
+We have several design options on how to treat absurd cases.  If we assume that
+each dependent type such as \AB{x} \AF{≡} \AS{0} generates a runtime assertion
+as we described in Section~\ref{sec:maptypes}, absurd cases may be simply
+eliminated.  In the presence of assertions the combination of such argument
+values is impossible, as guaranteed by Agda's coverage checker~\cite{}.
+However, absurd cases carry information that we might want to pass
+to the target language.  Consider the following example:
+\begin{code}
+  P : _ → _
+  P x = x * x + 2 ∸ 3 * x
+  ex₁₀ : ∀ x → 0 < P x → ℕ
+  ex₁₀ 1 ()
+  ex₁₀ 2 ()
+  ex₁₀ x pf = ⋯
+\end{code}
+We can generate an assertion that \AB{x} is greater than \AF{P} \AB{x}, and
+after eliminating first two cases, the body of the function would reduce to a single
+statement over variables \AB{x} and \AB{pf}.  However, deducing that
+\AB{x} not equals to \AS{1} and \AS{2} is not straight forward (undecidable in
+general).  By preserving this information, the target language might make a
+good use of it, \eg{} for better optimisations.
+
+To preserve the absurd patters target languages must provide the way to terminate
+computation on the given conditional.  Currently, we are using the
+\AF{assert} (\AS{0}) construction to abort the computation.  Note that such an
+abort construction is needed irrespectively of whether we preserve absurd patterns
+or not, as we need a constructor that expresses the case when the function has
+a single absurd clause \eg{}:
+\begin{code}
+  ex₁₁ : ∀ n → n < 0 → ℕ      -- def ex11 (x1, x2):
+  ex₁₁ n ()                   --   assert (0)
+\end{code}
+The problem here is that per semantics of our target language we need to return
+some value.  The function from above does not provide any value, as it has shown
+that no arguments can possibly satisfy the type signature, and ex falso quodlibet
+(or the principle of explosion) states that anything is deducible from falsehood.
+For example, a natural number, but it does not tell us which one!  While inventing
+a natural number is easy, generally, inventing a value of the given type is
+undecidable.
+
+The actual translation between pattern lists and predicates is implemented in
+with the following function:
+
+\begin{code}[hide]
+module ClPats where
+  open import Reflection hiding (_>>=_; return; _>>_)
+  open import Reflection.Term using (Telescope; con)
+  open import Data.Fin as F using (Fin; zero; suc)
+  open import Data.Product
+  open import Data.List using (_++_)
+  open Kaleid
+  record PatSt : Set where
+    field conds : List Expr
+
+  infixl 10 _+=c_
+  _+=c_ : PatSt → Expr → PatSt
+  p +=c c = record p { conds = PatSt.conds p ++ [ c ] }
+  pst-fresh : PatSt → String → Err $ String × PatSt
+  pst-fresh = ⋯
+  _>>=_ : ∀ {X Y : Set} → Err X → (X → Err Y) → Err Y
+  _>>=_ = ⋯
+  return : ∀ {X : Set} → X → Err X
+  return = ⋯
+\end{code}
+\begin{code}
+  {-# TERMINATING #-}
+  kompile-clpats : Telescope → (pats : List $ Arg Pattern) → (exprs : List Expr) → PatSt → Err PatSt
+  kompile-clpats tel (arg i (con (quote F.zero) ps) ∷ l) (e ∷ ctx) pst =
+    kompile-clpats tel l ctx $ pst +=c (BinOp Eq e (Nat 0))
+  kompile-clpats tel (arg i (con (quote F.suc) ps@(_ ∷ _ ∷ [])) ∷ l) (e ∷ ctx) pst = do
+    (ub , pst) ← pst-fresh pst "ub_"
+    kompile-clpats tel (ps ++ l) (Var ub ∷ (BinOp Minus e (Nat 1)) ∷ ctx)
+                   $ pst +=c (BinOp Gt e (Nat 0))
+  kompile-clpats tel ps ctx pst = ⋯
+\end{code}
+We are considering only two clauses of the functions that matches \AF{Fin}
+constructors \AC{zero} and \AC{suc}.  The function take four arguments:
+the telescope mapping variables used in the pattern list to their names
+and types (see Section~\ref{sec:rewriting} for details on telescopes);
+the list of patterns; the list of expressions that are being matched
+by the patterns; and the state record \AD{PatSt}.  The state record
+contains things like the counter for fresh variables, the list of conditions
+accumulated so far, local assignments, and so on.  At the beginning of each
+clause, the list of expressions is initialised with function arguments.
+For each constructor-pattern (like \AF{zero} or \AF{suc}) we have to
+produce a condition that holds only when the encoded value in the
+target language represents the value that was built using the given
+constructor.  For example, as we represent \AF{Fin} with natural numbers,
+the \AC{zero} constructor yields the \AB{e} \AF{==} \AS{0} condition.
+Correspondingly, the \AC{suc} \AB{ub} \AB{x} yields two conditions:
+\AB{e} \AF{>} \AS{0} and (\AB{e}\AF{-}\AS{1}) \AF{>} \AS{0}.
+In the above code snippet we make a small optimisation and skip
+generation of the last condition for the upper bound of the \AC{suc}
+constructor. This is valid under assumption that we have asserted
+that the argument is less than the argument of \AF{Fin} type.
+The \AF{pst-fresh} function generates a variable with the unique
+(within the clause) name, and \AF{\_+=c\_} adds new condition into
+the state.
+
+Notice that we marked this function as terminating.  We had to do
+so as termination checker cannot prove that the call in the second
+clause is valid.
+Specifically, the \AB{ps} \AF{++} \AB{l} argument is problematic.
+Indeed, if we keep increasing the list of the patterns recursively,
+then the function might not terminate.  While this particular function
+is actually safe, we can prove this formally, demonstrating the power
+of Agda when building extractors.
+
+The function is terminating because the \AF{Pattern} type is well-founded,
+and all the objects of that type are finite.  Therefore, if we find a
+metric that would witness this and decrease at each \AF{kompile-clpats} call,
+our recursion would become structural.  Here is one way to do this:
+\begin{code}
+  sz : List $ Arg Pattern → ℕ
+  sz [] = 0
+  sz (arg i (con c ps) ∷ l) = 1 + sz ps + sz l
+  sz (arg i _ ∷ l) = 1 + sz l
+
+  ps++l<m : ∀ {m} ps l → suc (sz ps + sz l) ℕ.< suc m → sz (ps ++ l) ℕ.< m
+  sz[l]<m : ∀ {m} ps l → suc (sz ps + sz l) ℕ.< suc m → sz l ℕ.< m
+
+  kompile-clpats′ : ∀ {m} → Telescope → (pats : List $ Arg Pattern) → .(sz<m : sz pats ℕ.< m)
+                 → (exprs : List Expr) → PatSt → Err PatSt
+
+  kompile-clpats′ {suc m} tel (arg i (con (quote F.zero) ps) ∷ l) sz<m (v ∷ ctx) pst =
+    kompile-clpats′ tel l (sz[l]<m ps l sz<m) ctx $ pst +=c BinOp Eq v (Nat 0)
+  kompile-clpats′ {suc m} tel (arg i (con (quote F.suc) ps@(_ ∷ _ ∷ [])) ∷ l) sz<m (v ∷ ctx) pst = do
+    (ub , pst) ← pst-fresh pst "ub_"
+    kompile-clpats′ tel (ps ++ l) (ps++l<m ps l sz<m) (Var ub ∷ (BinOp Minus v (Nat 1)) ∷ ctx)
+                    $ pst +=c BinOp Gt v (Nat 0)
+  kompile-clpats′ tel l sz<m ctx ps = ⋯
+\end{code}
+We define the \AF{sz} function that computes how many non-constructors are
+in the given list of patterns: if the pattern is a constructor, its size
+is 1 plus the size of its arguments; otherwise the size is one.  After that
+we prove two lemmas: \AF{ps++l<m} for the case when the recursive call gets
+the concatenation of the arguments and the remainder of the pattern list; and
+\AF{sz[l]<m} when the recursive call happens only on the remainder of the
+pattern list.  Then we extend \AF{kompile-clpats} with two extra arguments:
+\AB{m} which is the bound of the size of pattern list; and \AB{sz<m} which
+is the proof that the size of the pattern list is less than the chosen bound.
+Note that we can mark the latter as irrelevant argument (by putting dot in the
+type) which means that it would be erased at runtime and that it is used as a
+static assertion rather than data.  Now we have to modify each recursive call
+by providing suitable upper bounds and proofs.  The latter is mainly achieved
+by using the \AF{ps++l<m} and \AF{sz[l]<m} lemmas.  Finally we can wrap this
+function so that the original type is matched as follows:
+\begin{code}[hide]
+  ps++l<m {m} ps l sz<m = ⋯
+  sz[l]<m {m} ps l sz<m = ⋯
+module Wrapper where
+  open import Reflection hiding (_>>=_; return; _>>_)
+  open import Reflection.Term using (Telescope; con)
+  open import Data.Nat.Properties as ℕ
+  open Kaleid
+  record PatSt : Set where
+  sz : List $ Arg Pattern → ℕ ; sz = ⋯
+  kompile-clpats′ : ∀ {m} → Telescope → (pats : List $ Arg Pattern) → .(sz<m : sz pats ℕ.< m)
+                 → (exprs : List Expr) → PatSt → Err PatSt
+  kompile-clpats′ = ⋯
+  kompile-clpats : Telescope → (pats : List $ Arg Pattern) → (exprs : List Expr) → PatSt → Err PatSt
+\end{code}
+\begin{code}
+  kompile-clpats tel pats ctx pst = kompile-clpats′ {m = suc (sz pats)} tel pats ℕ.≤-refl ctx pst
+\end{code}
+For a given pattern list we chose an upper bound that is one greater than the
+actual size of the pattern list.  The proof that the upper bound holds is
+straight-forward and is witnessed by a standard library function \AF{≤-refl}.
+
+\todo[inline]{Do we want to say anything about the overall idea of folding
+  pattern-matching cases into a conditional, and reverse mappings of the
+  encoding back into constructors that we are dealing with?}
+
+% \todo[inline]{Explain how do we turn a pattern-matching function definition
+% into a single definition with a conditional inside.  We have to make sure
+% that we explained the telescopes (or explain them here), and we can
+% reiterate absurd patterns here.}
+
+\subsection{Translating terms}
+The actual translation of Agda terms into Kaleidoscope terms a very
+mechanical process.  However, as the translation may fail, the use of
+monads and \AK{do}-notation for managing errors helps us to keep the
+code clean:
+\begin{code}[hide]
+module KompTerm where
+  open import Reflection hiding (_>>=_; return; _>>_)
+  open import Reflection.Term
+  open import Relation.Binary.PropositionalEquality using (_≡_ ; refl; cong)
+  open import Relation.Nullary
+  open Kaleid
+  open import Data.Fin as F using ()
+  open import Data.List using (length; _++_)
+  record KS : Set where
+    field funs : List Name
+
+  --SKSE = SKS ∘ Err
+  _>>=_ : ∀ {X Y : Set} → SKS X → (X → SKS Y) → SKS Y
+  _>>=_ = ⋯
+  return : ∀ {X : Set} → X → SKS X
+  return = ⋯
+  _>>_ : ∀ {A B : Set} → SKS A → SKS B → SKS B ; _>>_ = ⋯
+  infixl 4 _<$>_ _⊛_
+  _<$>_ : ∀{A B : Set} → (A → B) → Err A → Err B ; _<$>_ = ⋯
+  _⊛_ : ∀ {A B : Set} → Err (A → B) → Err A → Err B ; _⊛_ = ⋯
+  modify : ∀ {i : ⊤} → (KS → KS) → SKS ⊤ ; modify = ⋯
+  kt : ∀ {X} → String → SKS (Err X) ; kt = ⋯
+  kompile-arglist : List $ Arg Term → List ℕ → Telescope → SKS $ Err (List Expr)
+  kompile-arglist = ⋯
+  mk-iota-mask : ℕ → List ℕ ; mk-iota-mask = ⋯
+  normalise-name : String → String ; normalise-name = ⋯
+\end{code}
+\begin{code}
+  kompile-term : Term → Telescope → SKS $ Err Expr
+  kompile-term (def (quote _+_) args@(arg _ a ∷ arg _ b ∷ [])) vars = do
+    a ← kompile-term a vars
+    b ← kompile-term b vars
+    return $ BinOp <$> ok Plus ⊛ a ⊛ b
+
+  kompile-term (def (quote F.fromℕ<) args) vars = do
+    ok (x ∷ []) ← kompile-arglist args (0 ∷ []) vars
+                  where _ → kt "wrong assumptions about arguments of fromℕ<"
+    return $ ok x
+
+  kompile-term (def n args@(_ ∷ _)) vars = do
+    modify λ k → record k { funs = KS.funs k ++ [ n ] }
+    args ← kompile-arglist args (mk-iota-mask $ length args) vars
+    return $ Call <$> ok (normalise-name $ showName n) ⊛ args
+
+  kompile-term t vars = ⋯
+\end{code}
+We demonstrate three representative clauses of the term extracting function.
+First, we turn \AD{SKS} and \AD{Err} into monads by defining their bind and
+return actions.  As each moand is an applicative functor, we get \AF{\_<\$>\_}
+and \AF{\_⊛\_} operations for free.  The instance resolution mechanism~\cite{}
+makes it possible to overload moanadic/functorial operations without explicitly
+mentioning in which monad we are operating.  Therefore, a typical translation,
+as in case of natural number addition, extracts the arguments and puts them
+together in a corresponding expression of the target language.
+
+For some constructions it is convenient to handle arguments without
+explicitly pattern-matching them, \eg{} some constructor with a long argument
+list where we are interested only in a particular subset.  For such reasons we
+introduce the two-argument \AF{kompile-arglist} function where the first argument
+is the list of \AC{Arg}uments; and the second argument is the mask that specifies
+indices into the first argument.  The function extracts each argument from the
+list as specified by the mask.  In case of \AF{fromℕ<} we use this function to
+extract the first argument from the \AB{args} list.
+
+The last clause deals with general function calls that do not require special
+treatment.  We ensure that argument list is non-empty: the \AF{\_ ∷ \_} pattern.
+Then we add the name of the function into the \AR{funs} field of the state record.
+This list would be used by \AF{kompile} to traverse the call graph of the function
+and extract all the necessary dependencies.  Then we extract the arguments, using
+the helper function \AF{mk-iota-mask} that generates indices from \AS{0} to the
+length of the argument list.  Finally we create an \AD{Expr}ession for a function
+call.  We use the extracted arguments and we normalise the name to get rid of
+unicode symbols.
+
+
+
+\subsection{\label{sec:rewriting}Rewriting}
+% \todo[inline]{Explain how rewriting rules could be used as additional
+% optimisation steps prior extraction.  Mention that the availability of
+% telescopes (that Jesper added to Agda) facilitates pushing rewriting
+% under the function clauses, which used to be a nightmare.}
+
+One of the unfortunate features of intuitionistic dependently-typed systems is the
+distinction between definitional and propositional equalities.  A famous
+example that demonstrates the problem is addition of natural numbers defined
+inductively on the first argument:
+\begin{code}
+  plus : ℕ → ℕ → ℕ
+  plus 0       b = b
+  plus (suc a) b = suc (plus a b)
+\end{code}
+With this definition \AS{0}\AF{+}\AB{x} is definitionally equal to \AS{x},
+but \AB{x}\AF{+}\AS{0} is not:
+\begin{code}
+  0-plus : ∀ x → 0 + x ≡ x          -- plus-0 : ∀ x → x + 0 ≡ x
+  0-plus x = refl                   -- does NOT hold definitionally
+\end{code}
+The problem is that there is no explicit reduction rule that can be applied
+to \AB{x}\AF{+}\AS{0} --- it is a neutral term.  As computation is an
+essential part of dependent type checking, some perfectly reasonable
+programs may be rejected.  For example, a vector of length \AB{n}
+concatenated with an empty vector is not of the type vector
+of length \AB{n}:
+\begin{code}
+  open import Data.Vec as V using (Vec; []; _∷_; zip)
+  -- rejected : ∀ {n} → (x : Vec ℕ n) → Vec ℕ n
+  -- rejected x = x ++ []
+\end{code}
+The reason is that \AB{x} \AF{++} \AC{[]} is of type \AD{Vec} \AD{ℕ}
+(\AB{n} \AF{+} \AS{1}).  This problem might seem too theoretical, unfortunately
+such cases are very often seen in practice, as a result of a long
+$\beta$-reduction sequence.  In the context of extraction, such terms
+make the extracted code less efficient.
+
+Fortunately, Agda makes it possible to work around this
+problem by introducing user-defined rewrite rules~\cite{}. Any binary
+relation can be registered as a source of rewrites.  Propositional equality
+\AF{\_≡\_} is typically a good choice.  Functions that return such a relation
+can be registered as rewrite rules.  For example:
+\begin{code}
+  plus-0 : ∀ x → plus x 0 ≡ x
+  plus-0 zero    = refl
+  plus-0 (suc x) = cong suc $ plus-0 x
+  {-# BUILTIN REWRITE _≡_ #-}
+  {-# REWRITE plus-0 #-}
+  plus-0-test : ∀ x → plus x 0 ≡ x
+  plus-0-test x = refl
+\end{code}
+We have defined an equality \AF{plus-0}, and registered it as a rewrite rule.
+This postulates a missing reduction rule for terms \AB{x}\AF{+}\AS{0}.  We can
+now show that \AB{x}\AF{+}\AS{0} is definitionally equal to \AB{x}.
+
+\todo[inline]{Now we want to propagate rewriting rules under the lambdas.}
+
+\subsubsection{Telescopes}
+Added telescopes in this pull request \url{https://github.com/agda/agda/pull/4722}.
+\todo[inline]{Explain what they are.}
+
+\todo[inline]{Explain our normalisation procedure modulo reconstruction.}
+
+
+
 
 \subsection{Monadic Workaround for Lets}
 One of the unfortunate design choices of the Agda internal language is
@@ -518,13 +904,93 @@ given that we add support for the above bind and return in our extractor.
 \end{code}
 
 
-\todo[inline]{Explain that we can workaround the lack of lets in the internal
-syntax by introducinog a fake monad; give an example.}
+%\todo[inline]{Explain that we can workaround the lack of lets in the internal
+%syntax by introducinog a fake monad; give an example.}
 
 
-\subsection{\label{sec:rewriting}Rewriting}
-\todo[inline]{Explain how rewriting rules could be used as additional
-optimisation steps prior extraction.  Mention that the availability of
-telescopes (that Jesper added to Agda) facilitates pushing rewriting
-under the function clauses, which used to be a nightmare.}
+\subsection{Example}
+% \todo[inline]{This is an example explaining how to define a function
+%   that is not structurally recursive.  Is it worth while keeping?
+%   We use the same technique in the kompile-clpats.  Maybe make it
+%   into a final example and demonstrate that we can extract it.}
 
+Let us consider the actual output that our extractor generates for a
+reasonably complex function.  We use binary logarithm as an example.
+We take the simplest specification, and we assume that logarithm of zero
+is zero.  One difficulty with this function is that it is not structurally
+recursive and Agda does not recognise that it terminates.  Therefore
+we need to take some steps to prove this.  We are going to use a standard
+technique of recursing on a well-founded \AF{\_<\_} predicate (comparison
+of natural numbers.  Here is Agda definition and the extracted code
+(slightly reformatted) arranged line-by-line:
+
+\begin{code}[hide]
+  open import Data.Nat.DivMod
+  open import Data.Nat.Properties
+\end{code}
+\begin{code}
+  -- _/_ : (x y : ℕ) {≢0 : False (y ≟ 0)} → ℕ
+
+  x<m⇒sx/2<m : ∀ x m → x < m → suc x / 2 < m
+  x<m⇒sx/2<m x m x<m = ≤-trans (m/n<m (suc x) 2 (s≤s z≤n) ≤-refl) x<m
+  -- Extracted with command : kompile log₂ (quote ≤-refl ∷ quote _<_ ∷ []) []
+  log₂′ : ∀ {m} → (n : ℕ) → (n < m) → ℕ  -- def log2' (x_1, x_2, x_3):
+                                         --   let x_3_assrt = assert (x_2 < x_1)
+  log₂′ {m}     0         _   = 0        --   let __ret = if (x_2 == 0):
+                                         --     let m = x_1 ; x = x_3
+                                         --     0
+  log₂′ {m}     1         _   = 0        --   else if (x_2 > 0) && (x_2 - 1 == 0):
+                                         --     let m = x_1 ; x = x_3 
+                                         --     0
+  log₂′ {suc m} n@(suc x) n<m =          --   else if (x_1 > 0) && (x_2 > 0):
+    1 + log₂′ {m = m} (n / 2)            --     let m = x_1 - 1 ; x = x_2 - 1 ; n<m = x_3
+        (x<m⇒sx/2<m x m $ ≤-pred n<m)    --     1 + log2' (m, 0 + (x + 1 - 0) / (1 + 1), 1)
+                                         --   else:
+                                         --     assert (0)
+
+  log₂ : ℕ → ℕ                           -- def log2 (x_1):
+  log₂ x = log₂′ x ≤-refl                --   let x = x_1 ; __ret = log2' (1 + x, x, 1)
+                                         --   __ret
+\end{code}
+We define two functions: \AF{log₂} which is a wrapper and \AF{log₂′} where the
+actual work happens.  We define two base cases for \AS{0} and \AS{1} and the recursive
+case on the argument divided by \AS{2}.  Notice that \AF{\_/\_} function has an implicit
+argument that asserts that the divisor is non-zero. Agda is capable to deduce the proof
+automatically for constant value such as \AS{2}.  In the extracted code we start with
+the assertion that was extracted from the type of \AB{n<m}.  The first case is trivial.
+In the second case we see \AB{x\_2} \AF{-} \AS{1} \AF{==} \AS{0},
+rather than \AB{x\_2} \AF{==} \AS{1}, which is an artefact of the algorithm
+used in \AF{kompile-clpats} and the fact that \AS{1} is represented as
+\AC{suc} \AC{zero}.  This is a correct translation, as we ensure that \AB{x\_2}
+is greater than zero before subtracting one.  However, this could be further
+optimised either by the target language or as a post-extraction step.
+
+In the recursive case, division looks suspiciously complex, and instead of the
+proof we have the value \AS{1}.  The reason for the complexity of the division
+operation is because \AF{\_/\_} expands to the internal representation given by a
+\AF{div-helper} \AB{k} \AB{m} \AB{n} \AB{j} that corresponds to the expression
+\AB{k} \AF{+} ((\AB{n}\AF{+}\AB{m}\AF{-}\AB{j}) \AF{/} (\AS{1}\AF{+}\AB{m})).
+We could have suppressed the normalisation of \AF{\_/\_}, but this is not
+generally desirable, as it prevents evaluation prior to extraction.  For example,
+without suppression (\AS{2}\AF{+}\AB{n})\AF{/}\AS{2} normalises to
+\AS{1}\AF{+}(\AB{n}\AF{/}\AS{2}), whereas suppressed \AF{\_/\_} would be treated
+as an opaque object.
+
+As for the proof, per our assumption, \AF{\_<\_} is used as a static assertion
+(we cannot pattern-match on its value).  This means that any function that has
+a return type \AB{a} \AF{<} \AB{b} can be replaced with the unit value.  This
+is valid, because we are extracting function calls that were verified by the
+typechecker.  Therefore, we can completely omit the proof part of \AF{\_<\_},
+only acknowledging that the type is inhabited.  This particular case relies
+on \AF{≤-trans} (from the inlined proof) and \AF{≤-refl} (from \AF{log₂}
+definition) being extracted into unit values.
+
+We have the \AK{else} case that is not specified in the original code on the left.
+The reason for this is that our pattern-matching
+is not exact.  We are missing the case where \AB{m} is zero and \AB{n} is greater
+than \AS{2}.  While the coverage checker is convinced that such case is impossible,
+the missing case is automatically inserted into internal representation
+as an absurd clause.
+
+Finally, in the \AF{log₂} definition, \AF{≤-refl} is a proof that \AB{x} is less
+than \AB{x}\AF{+}\AS{1}.
