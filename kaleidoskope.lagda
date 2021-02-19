@@ -52,22 +52,24 @@ module Hide where
       kompile : Name → Names → Names → (Term → TC ⊤)
       kompile n base skip hole = ⋯
 \end{code}
-The parameter \AF{kompile-fun} is the actual language-specific
-function that would do the extraction.  The interface function
-\AF{kompile} obtains the definition of the Agda function named
-\AB{n} and all the function that are found on the call
-graph of \AB{n} using \AF{kompile-fun}.  It returns
-a concatenation of all the extracted functions, given that all of
-them succeeded, or returns an error.  The latter is taken care by
-the combination of the state monad \AF{SKS} and the \AF{Prog}
-type.
-
+The \AF{kompile-fun} parameter is a language-specific function that
+is doing all the major work.  It extracts a reflected function with
+given type, body and name and returns its textual representation,
+in case extraction succeeded.  It operates in the \AF{SKS} state
+monad.  The entry function \AF{kompile} is language-agnostic, as
+it delegates all the work to \AF{kompile-fun}.  Given the
+function named \AB{n} it obtains normalised type and body, runs
+the extraction and recurses into functions that are found on the
+call graph of \AB{n}.  It is assumed that \AF{kompile-fun} adds
+a dependency into the state and \AF{kompile} keeps track of the
+visited function to avoid repeated extraction.  Finally, all the
+extracted functions are concatenated together given that all the
+extractions succeeded.
 
 The second and the third parameters of \AF{kompile} are lists of
 names that control function inlining in the extracted terms and
 traversal into the definitions found in the call graph.  We explain
-these two properties at examples momentarily after we introduce
-the first embedded language Kaleidoscope.
+these arguments after introducing our first embedded language.
 
 \subsection{Kaleidoscope}
 We borrow the notion of Kaleidoskope from the tutorial~\cite{} on
@@ -831,7 +833,6 @@ programs may be rejected.  For example, a vector of length \AB{n}
 concatenated with an empty vector is not of the type vector
 of length \AB{n}:
 \begin{code}
-  open import Data.Vec as V using (Vec; []; _∷_; zip)
   -- rejected : ∀ {n} → (x : Vec ℕ n) → Vec ℕ n
   -- rejected x = x ++ []
 \end{code}
@@ -842,7 +843,7 @@ $\beta$-reduction sequence.  In the context of extraction, such terms
 make the extracted code less efficient.
 
 Fortunately, Agda makes it possible to work around this
-problem by introducing user-defined rewrite rules~\cite{}. Any binary
+problem with rewrite rules~\cite{}. Any binary
 relation can be registered as a source of rewrites.  Propositional equality
 \AF{\_≡\_} is typically a good choice.  Functions that return such a relation
 can be registered as rewrite rules.  For example:
@@ -850,14 +851,68 @@ can be registered as rewrite rules.  For example:
   plus-0 : ∀ x → plus x 0 ≡ x
   plus-0 zero    = refl
   plus-0 (suc x) = cong suc $ plus-0 x
+
   {-# BUILTIN REWRITE _≡_ #-}
   {-# REWRITE plus-0 #-}
   plus-0-test : ∀ x → plus x 0 ≡ x
   plus-0-test x = refl
 \end{code}
-We have defined an equality \AF{plus-0}, and registered it as a rewrite rule.
-This postulates a missing reduction rule for terms \AB{x}\AF{+}\AS{0}.  We can
-now show that \AB{x}\AF{+}\AS{0} is definitionally equal to \AB{x}.
+We have defined a propositional equality \AF{plus-0}, and registered it as a
+rewrite rule.  By doing so, \AF{plus-0} became a defintional equality, and
+we go the ``missing'' reduction rule.  We can now show that \AB{x}\AF{+}\AS{0}
+is definitionally equal to \AB{x}.
+
+In the context of extraction rewrite rules can be seen as a mechanism to define
+custom optimisations.  As rewrite rules are applied prior to extraction, extractors
+are operating on rewritten terms.  The benefit of this approach is that rewrite
+rules that we register are \emph{formally verified} (when using \AF{\_≡\_} as a
+rewrite relation).  For example, we could define the following rule that we were
+taught at school:
+\begin{code}
+  open import Data.Nat.Solver ; open +-*-Solver
+  sum-square : ∀ x y → x * x + 2 * x * y + y * y ≡ (x + y) * (x + y)
+  sum-square = solve 2 (λ x y → x :* x :+ con 2 :* x :* y :+ y :* y
+                        :=  (x :+ y) :* (x :+ y)) refl
+  {-# REWRITE sum-square #-}
+\end{code}
+so that we can perform two arithmetic operations instead of six when computing
+the polynomial.  It might seem that such an example on natural numbers are not
+very practical, but it gets more prominent for more complex data structures.
+For example, the famous list equality on distributivity of \AF{map}s over
+\AF{\_∘\_}:
+\begin{code}
+  open import Data.List using (map)
+  map-∘ : ∀ {X Y Z : Set}{g : X → Y}{f : Y → Z} → ∀ xs → (map f ∘ map g) xs ≡ map (f ∘ g) xs
+  map-∘ [] = refl
+  map-∘ (x ∷ xs) = cong (_ ∷_) (map-∘ xs)
+\end{code}
+tells us that we can save one list traversal.  Instead of traversing all the elements
+of \AB{xs} and then all the elements of the \AF{map} \AB{g} \AB{xs}, we can compute
+the same result in a single traversal.  Generally, we often know a number of properties
+about the data structures we are working with.  In a dependently-typed systems we can
+make those properties explicit and formally verify them, but in rewriting-capable
+systems we can selectively turn properties into optimisations.
+
+One danger with custom rewrite rules is the ability to create a sequence of
+non-terminating rewrites.  For example if one registers commutativity of addition
+as a rewrite rule, then any expression of the form \AB{a} \AF{+} \AB{b} would
+cause an infinite sequence of rewrites.  One of the measures to prevent this
+is a recently introduced rewrite rule confluence checker~\cite{}.  It can be
+turned on and it would report when the registered set of rewrite rules is not
+confluent.  While confluence does not guarantee termination, it becomes very
+practical in combination with restrictions on the left-hand-side of each rule
+that must be a constructor or a function applied to neutral terms.  In the
+adding zero on the right example, the confluence checker will complain that
+\AF{plus} (\AC{suc} \AB{x}) \AS{zero} can be rewritten into two different
+ways: (\AC{suc} \AB{x}) and \AC{suc} (\AF{plus} \AB{x} \AS{zero}).  So if
+we add a new rewrite rule for \AF{plus} (\AC{suc} \AB{x}) \AS{zero} $\mapsto$
+\AC{suc} \AB{x}, our rewrite becomes confluent.  In case of commutativity,
+the confluence checker would complain that \AS{0} \AF{+} \AB{m} reduces
+to \AB{m} but rewrites to \AS{m} \AF{+} \AC{zero}, so fixing this would
+require a rule \AB{m} $\mapsto$ \AB{m} \AF{+} \AC{zero}, but such a rewrite
+is not allowed, as the left hand side is not a constructor/function application.
+For more details on rewrite rules and their confluence checking refer to~\cite{}.
+
 
 \todo[inline]{Now we want to propagate rewriting rules under the lambdas.}
 
