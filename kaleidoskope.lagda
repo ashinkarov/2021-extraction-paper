@@ -87,8 +87,10 @@ Finally, a function is given by name, list of arguments and the body
 expression.  A declaration of external function is given by name and
 arguments.  A possible encoding of Kaleidoskope's AST follow:
 
-\begin{code}
+\begin{code}[hide]
 module Kaleid where
+\end{code}
+\begin{code}
   Id = String
 
   data Op : Set where
@@ -130,10 +132,12 @@ functions of the above types would be mapped to the target language functions.
 While it is temping to say that any Agda term of the above types could
 be translated into Kaleidoscope, this is not true.  For example, consider
 a function:
-\begin{code}
+\begin{code}[hide]
 module Problem where
   open import Data.Nat.Show renaming (show to showNat)
   open import Data.String using (length)
+\end{code}
+\begin{code}
   ex : ℕ → ℕ
   ex x = length (showNat x)
 \end{code}
@@ -147,7 +151,7 @@ In a dependently-typed language such restrictions can be achieved by
 constructing a universe.  The strength of restrictions presents us an
 entire spectrum ranging from weak to strong.  Let us demonstrate a
 universe that restricts function types.
-\begin{code}
+\begin{code}[hide]
 module Univ where
   open Problem
   open import Data.Fin using (Fin; zero; suc)
@@ -155,6 +159,8 @@ module Univ where
   open import Data.Product
   open import Data.Nat.DivMod
   open import Data.String using (length)
+\end{code}
+\begin{code}
   data Ty : Set ; ⟦_⟧ : Ty → Set
   data Ty where
     nat   : Ty
@@ -258,9 +264,10 @@ Section~\ref{sec:rewriting}, including our modifications to Agda.
 The manual run of normalisation suggests that sometimes it would be
 convenient to leave function applications as they are.  For example,
 consider the following program:
-\begin{code}
+\begin{code}[hide]
   open import Relation.Nullary
-  
+\end{code}
+\begin{code}
   ex₅ : ℕ → ℕ
   ex₅ x with x ≟ 42
   ... | yes _ = 10
@@ -298,9 +305,11 @@ This functionality was not previously available in Agda, so we added two new pri
 to the reflection API --- \AF{dontReduceDefs} and \AF{onlyReduceDefs} with pull
 request \url{https://github.com/agda/agda/pull/4978}.  The functions have the following
 types:
-\begin{code}
+\begin{code}[hide]
 module Funs where
   open import Reflection using (Name; TC)
+\end{code}
+\begin{code}
   onlyReduceDefs : ∀ {a} {A : Set a} → List Name → TC A → TC A ; onlyReduceDefs = ⋯
   dontReduceDefs : ∀ {a} {A : Set a} → List Name → TC A → TC A ; dontReduceDefs = ⋯
 \end{code}
@@ -536,11 +545,12 @@ to extend the API rather than reimplementing pattern folding.
 
 Secondly, absurd patterns have to be treated with care.  For example, consider
 the following function:
-\begin{code}
+\begin{code}[hide]
 module Ex9 where
   open import Relation.Binary.PropositionalEquality
   open import Data.Fin using (Fin; zero; suc)
-
+\end{code}
+\begin{code}
   ex₉ : (x : ℕ) → x ≡ 0 → (y : ℕ) → x ≡ y → ℕ   -- def ex9(x_1, x_2, x_3, x_4):
   ex₉ x ()  (suc y) refl                        --   if (x_3) > (0): assert (0)
   ex₉ x x=0 y       x=y  = y                    --   else: x_3
@@ -913,10 +923,10 @@ require a rule \AB{m} $\mapsto$ \AB{m} \AF{+} \AC{zero}, but such a rewrite
 is not allowed, as the left hand side is not a constructor/function application.
 For more details on rewrite rules and their confluence checking refer to~\cite{}.
 
+\subsubsection{Telescopes}
 
 \todo[inline]{Now we want to propagate rewriting rules under the lambdas.}
 
-\subsubsection{Telescopes}
 Added telescopes in this pull request \url{https://github.com/agda/agda/pull/4722}.
 \todo[inline]{Explain what they are.}
 
@@ -939,8 +949,10 @@ While this is too large of a change in Agda, we can use the following
 elegant workaround.  Agda's do-notation is a syntactic sugar that
 expands if we define two operations \AF{\_>>=\_} and \AF{return}
 for some monad~\cite{}.  This includes the identity monad as well:
-\begin{code}
+\begin{code}[hide]
 module Monadic where
+\end{code}
+\begin{code}
   _>>=_ : ∀ {ℓ₁ ℓ₂}{A : Set ℓ₁}{B : Set ℓ₂} → A → (A → B) → B
   a >>= f = f a
   return : ∀ {ℓ}{A : Set ℓ} → A → A
