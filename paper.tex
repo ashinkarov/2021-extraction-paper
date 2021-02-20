@@ -79,6 +79,8 @@
 
 \usepackage{todonotes}
 
+\usepackage{varwidth}
+
 \usepackage{agda}
 \usepackage{newunicodechar}
 \newunicodechar{∷}{::}
@@ -102,6 +104,13 @@
 \newcommand{\AK}[1]{\AgdaKeyword{#1}}
 \newcommand{\AR}[1]{\AgdaField{#1}}
 \newcommand{\AS}[1]{\AgdaSymbol{#1}}
+%\renewcommand{\AgdaCommentFontStyle}[1]{\textsf{#1}}
+
+\newcommand\codeblock[1]{%
+  %{\fbox{\begin{varwidth}{0.9\textwidth}#1\end{varwidth}}}
+  {\begin{varwidth}{0.9\textwidth}#1\end{varwidth}}
+}
+
 
 % \usepackage{ifthen}
 %
