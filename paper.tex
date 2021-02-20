@@ -198,26 +198,48 @@
 %% Note: \begin{abstract}...\end{abstract} environment must come
 %% before \maketitle command
 \begin{abstract}
-  Most practical programming languages of today prioriterise 
-  performance and usability over safety.  As a result, many
-  useful correctness invariants cannot be expressed in the given
-  language, typically due to weakness of the chosen type system.
-  We are looking for non-invasive verification: how to
-  guarantee a property about the given program without any modifications
-  to the language toolchain.
+  Embedding a language of interest in a dependently-typed host language
+  empowers the user to verify a huge number of invariants.  The difficult
+  choice is whether to use deep or shallow embedding.  The latter is very
+  easy to use because the entire infrastructure of the host langauge is
+  immediately available.  The former gives a full control over the structure
+  of embedded programs, but it is difficult to use in practice,
+  specifically when the embedded language is dependently typed.
+  The biggest insight that this paper builds on is that 
+  metaprogamming within the host language eliminates the distinction.
+  Shallow embeddings can access all the libraries and tools, and we can
+  access their structure using reflection.
 
-  We study an approach when a programming language is shallowly
-  embedded into a theorem prover, and dependent types are used
-  to encode the properties of interest.   Bringing the embedded
-  langauge and the properties back into the original language
-  is the main focus of this work.  We propose a generic extraction
-  mechanism that we implement in Agda that is based on the concept
-  of reflection.  Making it possible to translate any shallowly
-  embedded language in the target backend without the necessity
-  to modify the theorem prover.
-  We demonstrate our framework in action by encoding three languages:
+  This technique is applied to programming languages that are shallowly
+  embedded into theorem provers, and dependent types are used
+  to encode the properties of interest.   Bringing embedded
+  programs and their properties back into the original language,
+  so that the existing toolchain could be leveraged, is the main
+  focus of this work.  We demonstrate working implementation of
+  this technique in Agda by encoding three languages:
   Kaleidoskope, SaC and a subset of APL, culminating in the implementation
   and extraction of a convolutional neural network.
+
+%  Most practical programming languages of today prioriterise 
+%  performance and usability over safety.  As a result, many
+%  useful correctness invariants cannot be expressed in the given
+%  language, typically due to weakness of the chosen type system.
+%  We are looking for non-invasive verification: how to
+%  guarantee a property about the given program without any modifications
+%  to the language toolchain.
+%
+%  We study an approach when a programming language is shallowly
+%  embedded into a theorem prover, and dependent types are used
+%  to encode the properties of interest.   Bringing the embedded
+%  langauge and the properties back into the original language
+%  is the main focus of this work.  We propose a generic extraction
+%  mechanism that we implement in Agda that is based on the concept
+%  of reflection.  Making it possible to translate any shallowly
+%  embedded language in the target backend without the necessity
+%  to modify the theorem prover.
+%  We demonstrate our framework in action by encoding three languages:
+%  Kaleidoskope, SaC and a subset of APL, culminating in the implementation
+%  and extraction of a convolutional neural network.
 \end{abstract}
 
 
