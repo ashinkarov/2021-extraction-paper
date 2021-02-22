@@ -1,5 +1,4 @@
 SRC := paper.tex \
-       related.tex \
        conclusions.tex \
        paper.bib
 
@@ -17,13 +16,16 @@ all: paper.pdf
 
 .PHONY: paper.tex
 paper.tex : latex/background.tex latex/kaleidoskope.tex latex/arraylang.tex \
-	    latex/aplcnn.tex
+	    latex/aplcnn.tex latex/related.tex
 
 latex/%.tex : %.lagda
 	$(AGDA) --latex $< #--only-scope-checking $<
 
 paper.pdf: $(SRC)
 	TEXINPUTS=./latex:$$TEXINPUTS latexmk -pdf -f -pdflatex='xelatex -halt-on-error' $<
+	#bibtex $(patsubst %.tex,%,$<) && \
+	#TEXINPUTS=./latex:$$TEXINPUTS xelatex $< ;\
+	#TEXINPUTS=./latex:$$TEXINPUTS xelatex $< ;\
 
 clean:
 	$(RM) *.aux *.log *.out *.vrb paper.pdf \
