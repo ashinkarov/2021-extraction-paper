@@ -34,17 +34,20 @@ and demonstrate Agda code snippets of the actual extractor for Kaleidoscope.
 
 \subsection{Framework Overview}
 
-Extraction process naturally split into language-dependent and -independent
-part.  Our implementation reflects such difference, and the language-independent
-part is separated into a module that can be reused for any extractors.
-We refer to this module as ``framework'' and we explain its structure.
-
+The extraction process can be naturally split into a
+language-dependent and a language-independent part. In our
+implementation, this is reflected by a separation into a reusable
+module that can be reused for implementing any extractor, and a
+language-dependent part that depends on this module. We refer to the
+language-independent module as the ``framework'' and we explain its
+structure here.
+%
 The entry point of the framework is a parametrised module \AM{Extract} that
 contains a single macro called \AF{kompile}:
 \begin{code}[hide]
 module ExtrMod where
   open import Reflection
-  open import Data.Nat as ℕ hiding (_≟_)
+  open import Data.Nat as ℕ hiding (_≟_) public
   SKS : Set → Set ; SKS = ⋯
   Prog : Set ; Prog = ⋯
   module Kaleid where
@@ -61,24 +64,15 @@ module ExtrMod where
                                 quoteTC 42 >>= unify hole
 \end{code}
 The \AF{kompile-fun} parameter is a language-specific function that
-is doing all the major work.  It extracts a reflected function with
-given type, body and name and returns its textual representation,
-in case extraction succeeded.
-Assuming an implementation of \AF{kompile-fun} for Kaleidoskope is located
-in the module \AM{Kaleid} here is a basic usage of the framework:
-\begin{code}
-  open Extract (Kaleid.kompile-fun)
-  foo : ℕ → ℕ  ; base-functions = ⋯ ; skip-functions = ⋯
-  extracted = kompile foo base-functions skip-functions
-\end{code}
-\begin{code}[hide]
-  foo = ⋯
-\end{code}
-The first argument to \AF{kompile} is the embedded function
-\AB{foo} that we want to extract.  It obtains normalised
-type and body, runs \AF{kompile-fun} for the actual extraction
-and recurses into functions that are found on the
-call graph of \AB{foo}.
+whose role is to compile a single Agda function.  It takes as input a
+representation of an Agda function with given type, body and name.
+%
+It operates within the \AF{SKS} state monad and returns either a
+representation of the extracted function in the target language in
+case extraction succeeded, or an error message, as specified by the
+\AD{Prog} type.  During the extraction process, the \AF{kompile-fun}
+can use the state of \AD{SKS} monad to register other functions that
+should also be extracted.
 
 \begin{mathpar}
 \codeblock{
@@ -90,12 +84,16 @@ data Err {ℓ} (A : Set ℓ) : Set ℓ where
 }
 \and
 \codeblock{
-\begin{code}
-SKS : Set → Set    -- State Monad (KS)
-\end{code}
 \begin{code}[hide]
 module ExtrStructMod where
   open import Data.Nat as ℕ hiding (_≟_)
+  open ExtrMod using (module Kaleid; module Extract)
+\end{code}
+\begin{code}
+  SKS : Set → Set    -- State Monad (KS)
+\end{code}
+\begin{code}[hide]
+  SKS = ⋯
 \end{code}
 \begin{code}
   TC  : Set → Set    -- TypeChecking Monad
@@ -105,28 +103,40 @@ module ExtrStructMod where
 \end{mathpar}
 \begin{code}[hide]
   TC = ⋯
-SKS = ⋯
 \end{code}
-Language-specific \AF{kompile-fun} operates within the \AF{SKS} state
-monad and returns a textual representation of \AF{foo} or an error
-message as specified by the \AD{Prog} type.  During the extraction
-process \AF{kompile-fun} should add functions
-that shall be extracted into the state of \AD{SKS} monad.
-Then \AF{kompile} traverses into newly-obtained dependencies while
-keeping track the visited functions to avoid repeated
-extraction\footnote{We had to explicitly mark the traversal of the
-  call graph as terminating function as termination checker could not
-  verify this.  Eliminating this annotation is difficult as we would
-  need to convince the termination checker that each call graph is
-  finite.  Unfortunately, reflection API does not provide such a
-  guarantee.}.
-Finally, all the extracted functions are concatenated together
-given that all the extractions succeeded.
 
-The second and the third parameters of \AF{kompile} are lists of
-names that control function inlining in the extracted terms and
-traversal into the definitions found in the call graph.  We explain
-these arguments after introducing Kaleidoscope.
+Assuming an implementation of \AF{kompile-fun} for Kaleidoskope is located
+in the module \AM{Kaleid} here is a basic usage of the framework:
+\begin{code}
+  open Extract (Kaleid.kompile-fun)
+  foo : ℕ → ℕ ; foo = ⋯ ; base-functions = ⋯ ; skip-functions = ⋯
+  extracted = kompile foo base-functions skip-functions
+\end{code}
+The first argument to the \AF{kompile} macro is the name of the main
+function that we want to extract, in this case \AB{foo}. The second
+and the third parameters of \AF{kompile} are lists of names that
+control function inlining in the extracted terms and traversal into
+the definitions found in the call graph.  We explain these arguments
+after introducing Kaleidoscope. When it is called, the \AF{kompile}
+macro obtains the normalized type and body of the main function, runs
+\AF{kompile-fun} for the actual extraction and recursively extracts
+any functions that have been registered for extraction during the
+processing of \AF{foo}.
+
+To avoid repeated extraction of the same function, the \AF{kompile}
+keeps track of already visited functions and only recurses into
+functions it has not already visited.%
+\footnote{We had to explicitly mark the traversal of the call graph as
+  terminating function as termination checker could not verify
+  this. Unfortunately, the reflection API of Agda currently does not
+  provide the guarantee that there is only a finite number of function
+  symbols. Hence it is not possible to eliminate this annotation with
+  the current version of Agda.}.
+Finally, after all required functions have been compiled, the bodies
+of all the extracted functions are concatenated together and are
+returned as the result of extraction.
+
+
 
 \subsection{Kaleidoscope}
 We borrow the notion of Kaleidoskope from the tutorial~\cite{kaleidoscope} on
