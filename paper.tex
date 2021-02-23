@@ -204,7 +204,7 @@
 %% before \maketitle command
 \begin{abstract}
   Dependently-typed host languages empower users to verify a large number
-  of properties about the embedded languages and programs written in them
+  of properties about the embedded languages and programs written in them.
   The difficult choice is whether to use deep or shallow embedding.  The
   latter easier to use because the entire infrastructure of the host langauge is
   immediately available.  The former gives a full control over the structure
@@ -283,163 +283,287 @@
 
 \section{Introduction}
 
-It is very satisfying when a program comes with a formal proof of its
-correct behaviour.  We can be confident that it implements the right algorithm,
-and we can eliminate many subsequent checks if we use the prorgam as a building
-block of a larger project.  Assume we wnat to provide such formal guarnatees
-about some implementation --- how can we do this?
+Dependently-typed systems such as Coq~\cite{}, Agda~\cite{}, Lean~\cite{}
+or Idris~\cite{} make it possible to implement verified specifications
+of the given problem.  Specifications can be executed
+within the type checker, or translated into
+general-purpose target languages.  However, it is problematic to
+leverage specific tools or languages that are not supported by the
+existing backends.
 
-Unfortunately, most widely used programming languages of today are not equipped
-with such capabilities.  For example, in C or Python, there is no way to give
-a proof that a certain function never throws division by zero exceptions or
-that it always indexes arrays within bounds.  Type systems of these languages
-are to weak to support such invariants, as they exclusively focus on verifying
-data domains.
+There are two common approaches to this problem: i) extend the
+toolchain; ii) define an embedded language and implement the specification
+in it.  The former gives at most freedom but it may be technically
+challenging, as one has to interact with the actual internals of a
+theorem prover.  The latter is know to be possible~\cite{}, but
+the resulting encodings get rather impractical when the embedded
+language is dependently-typed.
 
-% 
-% The more correctness guarantees a programming language provides, the more
-% difficult it is to use.  The reason is that a programmer has to do extra work
-% to establish and maintain program invariants of interest.  Unfortunately, such
-% extra work does not always pay off.  Correctness, at times, is orthogonal to
-% functionality: if the program does not crash, it does not mean that it searches
-% the given query on the internet.
-% 
-% As nobody seem to know how to write an invariant ``returns a meaningful
-% response to a search query'', a lot of practical programming languages focus on
-% usability, providing only rudimentary means for expressing correctness invariants.
-% For example, C or Python are undoubtfully useful, but neither of the languages
-% makes it possible to guarantee lack of division by zero or in-bound array
-% indexing statically.
-% 
+In this paper we would like to seriously consider an approach that
+uses metaprogramming to define custom extractors, making it possible
+to write a verified program hand-in-hand with an executor for it ---
+all within a single environment.  No need to touch internals
+of the host language; no encoding artefacts.
+% Verified programming turns into Embed-Typecheck-Extract Loop.
 
+Recently, many dependently-typed systems introduced~\cite{idris-refl,
+lean-refl,metacoq,agda-refl} reflections
+mechanism in a Lisp (or \emph{direct reflection}~\cite{nuprl-refl})
+style.  That is, the language has \texttt{quote}/\texttt{unquote}
+primitives that translate expressions to their internal representation
+and back.  The internal representation is regular data that can be
+accessed and manipulated as usual.  The main intention of
+reflection APIs is to automate generaliseable routine tasks of writing
+boilerplate code, \eg{} tactics.  However, existing APIs are
+typically complete enough to be used for general
+code generation tasks such as writing custom compiler backends.
 
-While we can imagine extending the given type system, it is unlikely to work
-well for an existing langauge.  Such an extension would touch on a very fundamental
-design decisions of the language and likely to generate enormous changes in the
-existing toolchains.  Adoption of such new features within the existing code
-is also unclear.
+The usecase we consider in this paper is slightly different.
+%Instead writing a full backend for the entire dependently-typed langauge,
+We are interested in verified implementations that shall be used
+in the context of an existing language.  We want to solve this
+problem by using Embed-Typecheck-Extract Loop.  That is, we embed
+a language or its subset in a theorem prover; we use dependent types
+to encode the properties; we use typechecking to verify the properties;
+and we use custom extractors to bring our implementation into the
+target language.  The important point is that we work
+on a fine-grain level.  Embeddings (and consequently extractors) do
+not have to cover the entire language, only the subset that is
+sufficient to specify the problem of interest.  Also, instead of
+implementing the entire application in a theorem prover, one might chose
+a particular fragment.
 
-In this paper we are investigating a less invasive approach on stating program
-invariants that cannot be internalised in the given language.  We propose the
-following three steps:
-\begin{enumerate}
-        \item encode the language (or its subset) in a theorem prover;
-        \item use dependent types to formulate and prove required properties;
-                and
-        \item \emph{extract} the embedded program and verified properties back
-                into the original language.
-\end{enumerate}
+The proposed approach has several advantages.  Firstly, it is much easier
+to work with shallow embeddings rather than with deep ones.  While deep
+embeddings provide full access to the program representation, we have
+to encode type system of the target language.  A number of examples~\cite{}
+show how advanced type systems such as System-F~\cite{} or dependent
+types with families~\cite{} can be leveraged to share the host type
+system for typechecking target programs.  This works beautifully for
+target languages with simple type systems, but the embedding gets
+impractically ugly~\cite{} in case of dependently typed ones.  This
+matters because we use dependent types in the embedding to encode the
+properties of interest.  Shallow embeddings do not require any additional
+encoding.  Embedded programs are regular programs in the host language,
+making all the libraries and tools immediately available.
 
-
-We briefly summarise the main challenges associated with each step.
-
-\paragraph{Embedding}
-Encoding a target language within a host language is commonly referred as 
-\emph{embedding}.
-Two kinds of embeddings are commonly distinguished~\cite{}: deep and shallow.
-Deep embedding encodes the target language AST and usually offers evaluation
-function that maps expressions of the target language into expressions
-of the host language.  In case of shallow embedding, each target language
-construction gets a function of the host language.  As a result, we can encode
-target language programs in the host language, but we do not necessarily get
-a handle on the representation of these.  For more details refer to~\cite{}.
-
-With deep embedding we have a full access to program representation, so it is
-much easier to transform/manipulate embedded programs.  However, the type system
-of the target language has to be encoded as well.  A number
-of examples~\cite{} show us how advanced type systems such as
-System-F~\cite{} or dependent types with families~\cite{} give rise to tagless 
-interpreters~\cite{}, essentially allowing us to share the host type system for
-typechecking target programs.  While this works beautifully for target languages with
-simple type systems, the embedding gets quite ugly~\cite{} when the target type
-system is dependently typed.  Impressive efforts have been taken~\cite{} to show
-that the encoding is possible, but it is far from being practical.
-
-In this work we consider shallow embedding only and we use Agda~\cite{} as our
-host language.
-
-\paragraph{Verifying} In the proposed system, dependent types play the key role
-when it comes to verification.  First, we expect that all properties/invariants
-about target programs are presented to the system as dependent types.  Note that
-providing a proof of the properties is a job of a programmer --- dependently
-typed system do not necessarily automate this step.  However, they do provide a
-way to write the proof down, which in systems like Agda is not different from
-writing a regular program~\cite{}.
-
-Sometimes extrinsic verification~\cite{} of the target programs might be
-insufficient, and we would have to use intrinsic approaches, \ie{} to interleave
-the actual data and its constraints.  For example, ensuring that the function
-$f(a, b) = a / (a - b)$ does not throw division by zero exception, we would have
-to add the $a \nequiv b$ constraint to $f$.  Surely, all the functions that use
-$f$ would have to respect this constraint.  In order to communicate this information,
-it is important to ensure that our embedded language supports the notion of
-dependent types.  Once again, that is where using shallow embedding helps
-significantly.
-
-\paragraph{Extracting}
-One of the difficulties with the steps proposed so far lies in the inability
-to use the verified target program outside of the theorem prover.  The key
-contribution of this work is a solution to this problem.  We propose program extraction
-technique that makes it possible to translate shallowly-embedded languages into
-a target language of choice.  The extraction process is based on the reflection
-capabilities~\cite{} of Agda, \ie{} a built-in metaprogramming facility that makes
-it possible to obtain data representation of any given Agda term.  Esentially,
-extraction process can be seen as a translation of one term representation
-into another.
-
-Specifying extraction of Agda terms in Agda offers a number of advantages.  First,
-lack of external dependencies and full access to the extraction process.  Typically,
-in classical compilers, backends are integral parts of the compiler, and while adding
-a new backend or modifying existing one is perfectly possible, it is a non-trivial
-endavour rarely accessible
-from within the programming langauge.  Usually the only interface to the backend
-we have is a set of predefined options.  Secondly, as extractor is a regular Agda
-program, it can use all the advanced type system features of the langauge, so it
-can encode as much properties about extraction correctness as needed.  Finally,
-extraction plays very nicely with user-defined rewriting rules, which make it possible
-to turn equality of two expressions into computation rule.  For example, while it
-is possible to prove that double reverse of a list is identity, it is not a computation
-rule.  By turning this into a rewriting rule, double reverses would be eliminated
-from the terms prior extraction, resulting in a potentially better performing
-target programs.
-% TODO mention about turning proofs itno user-defined constraint or assertions 
-%      depending on the capabilities of the backend language.
+Secondly, specifying embeddings and extractions in the same dependently-typed
+framework offers a number of advantages.  We do not have to rebuild the
+theorem prover each time we modify the extractor.  Extractors can be
+fine-tuned for the particular application, \eg{} treating a chosen function
+in a specific way.  Extractors can make full use of dependent types,
+ensuring that the extraction process is sound.  In case of Agda,
+extractors play very nicely together with the rewriting rules.  The latter
+makes it possible to turn equalities into computation rules.  For example,
+we can prove that list revresals are involutive and register this as a
+rewrite rule.  As a result any double reverses will be eliminated prior
+the extraction, resulting in better performing programs.
 
 
-\paragraph{Applications} We demonstrate the propsed approach on two languages:
-Kaleidoskope~\cite{} and SaC~\cite{}.  The former is a minimalist langauge
-that is ofetn used as an example when creating LLVM~\cite{} backends.  We follow
-the tradition and use it to demonstrate the basic mechanisms.  SaC is a high-performance
-array language; it generates efficient code for various backends, but it is rather
-restrictive.  The main focus lies in guarnteeng in-bound array indexing.  In order
-to do so we have to track shapes of the arrays in types, which requires our
-embeeded langauge to be dependently-typed.  Finally, we demonstrate an embedding
-of a small subset of APL~\cite{}
-that is sufficient to encode a Convolutional Neural Network (CNN)~\cite{}.
-The main difficulty with APL is that the language is untyped, and the semantics
-of the builtin operators is quite complex.  The main focus of the encoding is that
-we define all the APL operators in terms of embeeded SaC operators, effectively
-obtaining a compiler from a subset of APL to executable binaries.
+We implement extractors for Kaleidoskope~\cite{kaleidoscope}
+and SaC~\cite{sac} in Agda.
+The former is a minimalist langauge that we use to demonstrate the basic
+extraction principles.  The latter is a high-performance
+array language that can generate efficient code for various architectures, but
+it has a restrictive type system.  Our SaC embedding guarantees
+program termination, in-bound array indexing, safe arithmetics.
+Finally, we embed a small subset of APL~\cite{} that is
+sufficient to encode a Convolutional Neural Network~\cite{cnninapl}.
+Embedding APL is difficult because the language is untyped, and its
+basic operators are heavily overloaded.  We define all the basic
+operators in terms of the SaC embedding, effectively obtaining a
+compiler from APL into executable binaries.
 
-
-\paragraph{Key Contributions}
+\paragraph{Contributions}
 The key contributions of this paper are:
 \begin{itemize}
-    \item We introduce the concept of extraction in Agda that is based on the
-            reflection capabilities of the system and effectively demonstrate
-            how to use dependently-typed meta-programming to create custom
-            backends for embedded languages.
-    \item We demonstrate how the proposed system can be applied, and we use
-            two array languages as an example.  We start with a dependently-typed
-            embedding of a subset of SaC~\cite{}.  We then define a subset of APL
-            in terms of the first embedding.
-    \item We demonstrate our system in action at the example of CNN implemented
-            in APL.  We port the implementation into our system and ensure that
+    \item We introduce the concept of reflection-based extractors
+            of shallowly-embedded languages in a theorem prover.
+    \item We extend the reflection API of Agda to accommodate
+            the needs of an array language.  We added the notion
+            of telescopes, selective reduction, and parameter
+            reconstruction.
+    \item We implement extractors for two languages: Kaleidoscope
+            and SaC.  We use the latter as a basis for embedding
+            a subset of APL.
+    \item We demonstrate how the proposed embeddings can be used
+            by encoding a real-world application and ensuring that
             it extracts correctly.
 \end{itemize}
 
-The rest of the paper is organised as follows:
-\todo[inline]{FIXME}
+The rest of the paper is organised as follows.  We start with a brief
+overview of Agda and its reflection API.  In Section~\ref{sec:basic-extr}
+we explain the key principles of reflection-based extractors using
+Kaleidoscope as our target language.  Section~\ref{sec:array} introduces
+our treatment of multi-dimensional arrays and specifics of their
+extraction.  In Section~\ref{sec:apl} we explain a few difficulties
+one may find when embedding real-world languages with sophisticated
+semantics.  We discuss related work in Section~\ref{sec:related}
+before we conclude in Section~\ref{sec:concl}
+
+
+
+
+
+
+
+%  It is very satisfying when a program comes with a formal proof of its
+%  correct behaviour.  We can be confident that it implements the right algorithm,
+%  and we can eliminate many subsequent checks if we use the prorgam as a building
+%  block of a larger project.  Assume we wnat to provide such formal guarnatees
+%  about some implementation --- how can we do this?
+%  
+%  Unfortunately, most widely used programming languages of today are not equipped
+%  with such capabilities.  For example, in C or Python, there is no way to give
+%  a proof that a certain function never throws division by zero exceptions or
+%  that it always indexes arrays within bounds.  Type systems of these languages
+%  are to weak to support such invariants, as they exclusively focus on verifying
+%  data domains.
+%  
+%  % 
+%  % The more correctness guarantees a programming language provides, the more
+%  % difficult it is to use.  The reason is that a programmer has to do extra work
+%  % to establish and maintain program invariants of interest.  Unfortunately, such
+%  % extra work does not always pay off.  Correctness, at times, is orthogonal to
+%  % functionality: if the program does not crash, it does not mean that it searches
+%  % the given query on the internet.
+%  % 
+%  % As nobody seem to know how to write an invariant ``returns a meaningful
+%  % response to a search query'', a lot of practical programming languages focus on
+%  % usability, providing only rudimentary means for expressing correctness invariants.
+%  % For example, C or Python are undoubtfully useful, but neither of the languages
+%  % makes it possible to guarantee lack of division by zero or in-bound array
+%  % indexing statically.
+%  % 
+%  
+%  
+%  While we can imagine extending the given type system, it is unlikely to work
+%  well for an existing langauge.  Such an extension would touch on a very fundamental
+%  design decisions of the language and likely to generate enormous changes in the
+%  existing toolchains.  Adoption of such new features within the existing code
+%  is also unclear.
+%  
+%  In this paper we are investigating a less invasive approach on stating program
+%  invariants that cannot be internalised in the given language.  We propose the
+%  following three steps:
+%  \begin{enumerate}
+%          \item encode the language (or its subset) in a theorem prover;
+%          \item use dependent types to formulate and prove required properties;
+%                  and
+%          \item \emph{extract} the embedded program and verified properties back
+%                  into the original language.
+%  \end{enumerate}
+%  
+%  
+%  We briefly summarise the main challenges associated with each step.
+%  
+%  \paragraph{Embedding}
+%  Encoding a target language within a host language is commonly referred as 
+%  \emph{embedding}.
+%  Two kinds of embeddings are commonly distinguished~\cite{}: deep and shallow.
+%  Deep embedding encodes the target language AST and usually offers evaluation
+%  function that maps expressions of the target language into expressions
+%  of the host language.  In case of shallow embedding, each target language
+%  construction gets a function of the host language.  As a result, we can encode
+%  target language programs in the host language, but we do not necessarily get
+%  a handle on the representation of these.  For more details refer to~\cite{}.
+%  
+%  With deep embedding we have a full access to program representation, so it is
+%  much easier to transform/manipulate embedded programs.  However, the type system
+%  of the target language has to be encoded as well.  A number
+%  of examples~\cite{} show us how advanced type systems such as
+%  System-F~\cite{} or dependent types with families~\cite{} give rise to tagless 
+%  interpreters~\cite{}, essentially allowing us to share the host type system for
+%  typechecking target programs.  While this works beautifully for target languages with
+%  simple type systems, the embedding gets quite ugly~\cite{} when the target type
+%  system is dependently typed.  Impressive efforts have been taken~\cite{} to show
+%  that the encoding is possible, but it is far from being practical.
+%  
+%  In this work we consider shallow embedding only and we use Agda~\cite{} as our
+%  host language.
+%  
+%  \paragraph{Verifying} In the proposed system, dependent types play the key role
+%  when it comes to verification.  First, we expect that all properties/invariants
+%  about target programs are presented to the system as dependent types.  Note that
+%  providing a proof of the properties is a job of a programmer --- dependently
+%  typed system do not necessarily automate this step.  However, they do provide a
+%  way to write the proof down, which in systems like Agda is not different from
+%  writing a regular program~\cite{}.
+%  
+%  Sometimes extrinsic verification~\cite{} of the target programs might be
+%  insufficient, and we would have to use intrinsic approaches, \ie{} to interleave
+%  the actual data and its constraints.  For example, ensuring that the function
+%  $f(a, b) = a / (a - b)$ does not throw division by zero exception, we would have
+%  to add the $a \nequiv b$ constraint to $f$.  Surely, all the functions that use
+%  $f$ would have to respect this constraint.  In order to communicate this information,
+%  it is important to ensure that our embedded language supports the notion of
+%  dependent types.  Once again, that is where using shallow embedding helps
+%  significantly.
+%  
+%  \paragraph{Extracting}
+%  One of the difficulties with the steps proposed so far lies in the inability
+%  to use the verified target program outside of the theorem prover.  The key
+%  contribution of this work is a solution to this problem.  We propose program extraction
+%  technique that makes it possible to translate shallowly-embedded languages into
+%  a target language of choice.  The extraction process is based on the reflection
+%  capabilities~\cite{} of Agda, \ie{} a built-in metaprogramming facility that makes
+%  it possible to obtain data representation of any given Agda term.  Esentially,
+%  extraction process can be seen as a translation of one term representation
+%  into another.
+%  
+%  Specifying extraction of Agda terms in Agda offers a number of advantages.  First,
+%  lack of external dependencies and full access to the extraction process.  Typically,
+%  in classical compilers, backends are integral parts of the compiler, and while adding
+%  a new backend or modifying existing one is perfectly possible, it is a non-trivial
+%  endavour rarely accessible
+%  from within the programming langauge.  Usually the only interface to the backend
+%  we have is a set of predefined options.  Secondly, as extractor is a regular Agda
+%  program, it can use all the advanced type system features of the langauge, so it
+%  can encode as much properties about extraction correctness as needed.  Finally,
+%  extraction plays very nicely with user-defined rewriting rules, which make it possible
+%  to turn equality of two expressions into computation rule.  For example, while it
+%  is possible to prove that double reverse of a list is identity, it is not a computation
+%  rule.  By turning this into a rewriting rule, double reverses would be eliminated
+%  from the terms prior extraction, resulting in a potentially better performing
+%  target programs.
+%  % TODO mention about turning proofs itno user-defined constraint or assertions 
+%  %      depending on the capabilities of the backend language.
+%  
+%  
+%  \paragraph{Applications} We demonstrate the propsed approach on two languages:
+%  Kaleidoskope~\cite{} and SaC~\cite{}.  The former is a minimalist langauge
+%  that is ofetn used as an example when creating LLVM~\cite{} backends.  We follow
+%  the tradition and use it to demonstrate the basic mechanisms.  SaC is a high-performance
+%  array language; it generates efficient code for various backends, but it is rather
+%  restrictive.  The main focus lies in guarnteeng in-bound array indexing.  In order
+%  to do so we have to track shapes of the arrays in types, which requires our
+%  embeeded langauge to be dependently-typed.  Finally, we demonstrate an embedding
+%  of a small subset of APL~\cite{}
+%  that is sufficient to encode a Convolutional Neural Network (CNN)~\cite{}.
+%  The main difficulty with APL is that the language is untyped, and the semantics
+%  of the builtin operators is quite complex.  The main focus of the encoding is that
+%  we define all the APL operators in terms of embeeded SaC operators, effectively
+%  obtaining a compiler from a subset of APL to executable binaries.
+%  
+%  
+%  \paragraph{Key Contributions}
+%  The key contributions of this paper are:
+%  \begin{itemize}
+%      \item We introduce the concept of extraction in Agda that is based on the
+%              reflection capabilities of the system and effectively demonstrate
+%              how to use dependently-typed meta-programming to create custom
+%              backends for embedded languages.
+%      \item We demonstrate how the proposed system can be applied, and we use
+%              two array languages as an example.  We start with a dependently-typed
+%              embedding of a subset of SaC~\cite{}.  We then define a subset of APL
+%              in terms of the first embedding.
+%      \item We demonstrate our system in action at the example of CNN implemented
+%              in APL.  We port the implementation into our system and ensure that
+%              it extracts correctly.
+%  \end{itemize}
+%  
+%  The rest of the paper is organised as follows:
+%  \todo[inline]{FIXME}
 
 \input{latex/background}
 \input{latex/kaleidoskope}

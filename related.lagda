@@ -1,4 +1,4 @@
-\section{\label{sec:relwork}Related Work}
+\section{\label{sec:related}Related Work}
 
 In a dependently-typed language such restrictions can be achieved by
 constructing a universe.  The strength of restrictions presents us an

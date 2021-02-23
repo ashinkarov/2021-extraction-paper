@@ -11,7 +11,7 @@ module _ where
 postulate
   ⋯ : ∀ {a}{A : Set a} → A
 \end{code}
-\section{Basic Extraction}
+\section{\label{sec:basic-extr}Basic Extraction}
 
 % On a high level, extraction translates reflected
 % Agda terms into corresponding terms in the target language,
