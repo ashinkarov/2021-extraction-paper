@@ -139,20 +139,20 @@ returned as the result of extraction.
 
 
 \subsection{Kaleidoscope}
-We borrow the notion of Kaleidoskope from the tutorial~\cite{kaleidoscope} on
+We borrow the example of the Kaleidoskope language from the tutorial~\cite{kaleidoscope} on
 building frontends to LLVM~\cite{llvm}.  This is a minimalist first order
-language where natural numbers is the only data type\footnote{Original
-tutorial used floats, but in the context of Agda it is easier to use to
-use natural numbers as we can prove more properties with them.}.
-We support arithmetic operations and comparisons.  Boolean values
-follow C convention where zero means false, and any other value means
-true.  Function calls and conditionals operate as usual, let constructs
+language with only one data type, the type of natural numbers\footnote{The original
+version of Kaleidoscope used floats, but in the context of Agda it is easier to
+use natural numbers as we can prove more properties of them.},
+with support for the basic arithmetic operations and comparisons. Following C convention, boolean values
+are encoded as numbers where `zero' means false, and any other value means
+true.  Function calls and conditionals operate as usual, and `let' constructs
 make it possible
-to bind immutable values to variables.  We add a one-argument \AF{assert}
-operator that terminates computation if its value evaluates to zero.
-Function are given by name, list of arguments and the body
-expression.  A declaration of external function is given by name and
-arguments.  A possible encoding of Kaleidoskope's AST follow:
+to bind immutable values to variables.  We extend Kaleidoscope with a one-argument \AF{assert}
+operator that terminates the program if its argument evaluates to zero.
+Functions are defined by giving a name, a list of arguments and the
+expression for its body.  A declaration of an external function is given by a name and a list of its
+arguments. We encode Kaleidoskope's AST as follows:
 
 \begin{code}[hide]
 module Kaleid where
