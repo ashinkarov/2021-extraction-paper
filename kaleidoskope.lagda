@@ -284,7 +284,7 @@ module NormMod where
 \end{code}
 In \AF{ex} type \AF{length} is a function from \AD{String} to \AD{ℕ}, buy
 it is applied to a constant string.  In the second clause of \AF{fib} we
-create a tuple (\AB{n} \AC{,} \AB{m} \AF{+} \AB{n}) 
+create a tuple (\AB{n} \AC{,} \AB{m} \AF{+} \AB{n})
 and immediately destruct it via pattern matching. Note that \AC{\_,\_}
 is defined as polymorphic dependently-typed constructor:
 \begin{code}[hide]
@@ -679,6 +679,8 @@ module Cls where
   open import Data.Nat as ℕ hiding (_≟_)
   Strings = List String
   open Kaleid
+  open ExtrStructMod using (SKS)
+
 \end{code}
 \begin{code}
   kompile-cls : (cls : Clauses) → (vars : Strings) → (ret : String) → SKS (Err Expr)
