@@ -194,21 +194,27 @@ module Kaleid where
 }
 \end{mathpar}
 
-\subsection{What does shallow embedding actually mean?}
-What subset of the
-host language forms the Kaleidoscope embedding and can we
-define it formally? Let us start with the types.  Natural
-numbers \AD{ℕ} is the main data type of the target language.  In order to
-describe invariants we also support bounded (by \AD{n}) natural
-numbers \AD{Fin n}, equality \AD{\_≡\_} and comparison \AD{\_<\_}.  As the
-last two relations decidable for \AD{ℕ}, we allow proof-relevant
-booleans \AD{Dec (a ≡ b)} and \AD{Dec (a < b)}.  They carry the boolean
-value and the proof that the relation holds for the chosen arguments.
-We map true to \AS{1} and false to \AS{0}, ignoring the proof.  First order
-functions of the above types are mapped to target language functions.
+\subsection{A shallow embedding of Kaleidoscope in Agda}
+In order to extract a Kaleidoscope program from an Agda program,
+we first need to identify what subset of the
+host language can be sensibly translated to Kaleidoscope.
+Let us start with the types. First, we need the natural
+number type \AD{ℕ} as it is the main data type of Kaleidoscope. In order to
+describe invariants we also support the type  \AD{Fin n} of natural number
+strictly less than \AD{n}, as well as the identity type
+\AD{\_≡\_} and the inequality type \AD{\_<\_} on natural numbers.
+The \AD{Fin n} type is mapped to numbers in the target language, while
+all primitive proofs of \AD{\_≡\_} and \AD{\_<\_} are mapped to the constant \AS{1}.
+In addition, as the last two relations are decidable on \AD{ℕ}, we also allow proof-relevant
+booleans \AD{Dec (a ≡ b)} and \AD{Dec (a < b)}. They carry a boolean
+value and the proof that the relation holds or does not hold for the chosen arguments,
+depending on whether the boolean is \AC{true} or \AC{false}.
+We map \AC{true} to \AS{1} and \AC{false} to \AS{0}, ignoring the proof. First order
+functions of the above types such as basic arithmetic \AD{\_+\_}, \AD{\_-\_},\ldots
+are mapped to corresponding functions in the target language.
 
-While it is temping to say that any Agda term of the above types could
-be translated into Kaleidoscope, this is not true.  For example, consider
+While it is tempting to say that any Agda term of the above types could
+be translated into Kaleidoscope, this is not the case.  For example, consider
 a function:
 \begin{code}[hide]
 module Problem where
@@ -221,29 +227,35 @@ module Problem where
   ex x = length (showNat x)
 \end{code}
 where \AF{showNat} returns a string representation of
-the given number.  However, neither \AF{length} nor \AF{showNat}
-is representable in Kaleidoscope, as there is no notion of strings
+the given number.  Neither \AF{length} nor \AF{showNat}
+are representable in Kaleidoscope, as there is no notion of strings
 in the language.
 
-At this point we can ask ourselves how would it be possible to restrict
-the types further and internalise the notion of a shallowly embedded
-language in the host language?  We would have to formally restrict the
-types that are allowed in embedded functions and the terms that appear
-in function bodies.  It is known~\cite{} that both restrictions are
-expressible in a dependently-typed language.  The problem is that when
-the embedded language is dependently-typed, as in our case (recall that
-we allow \AF{\_<\_}, \AF{\_≡\_}, \etc{}), the existing solutions become
-very impractical.  The encoding of the types and terms includes contexts
-and explicit substitutions, turning even simplest programs into large
-and non-trivial terms.  Essentially, we have to leave the world of
+At this point we can ask ourselves how we could restrict
+further and pin down precisely what fragment of Agda we can extract.
+To go this route, we would have to restrict what
+types are allowed in embedded functions and what terms can appear
+in function bodies. Essentially, we have to leave the world of
 shallow embeddings and switch to deep embeddings.
 
-The question whether there is a satisfying middleground is still generally
+Previous work~\cite{} has shown that it is possible to define
+strongly typed deep embeddings in a dependently typed host language,
+and thus enforce both of the above restrictions while keeping
+strong guarantees on the correctness of extracted code. However, for
+embedded language that use dependent types, as in our case (recall that
+we allow \AF{\_<\_}, \AF{\_≡\_}, \etc{}), all currently existing solutions become
+very heavyweight. In particular, one needs to encode not only types and
+terms of the embedded language, but also contexts and explicit substutions,
+turning even the simplest programs into large and non-trivial terms.
+
+The question whether there is a satisfying middle ground between shallow and
+deep embedding is still generally
 open.  We explore in more details why straight-forward constructions like
 type universes are only of a limited use in Section~\ref{sec:related}.
 Our solution in this paper is to avoid the encoding problem entirely
-and rely on entirely on metaprogramming.  An Agda term belongs to the
-embedding if the extractor does not fail on it.  
+and rely instead on metaprogramming to extract a subset of Agda into
+our target language.  An Agda term is defined to belong to the
+embedding if the extractor does not fail on it.
 
 % While these are hard and interesting problems in itself, this paper takes a
 % radically different approach.  Instead of trying to restrict types and terms
