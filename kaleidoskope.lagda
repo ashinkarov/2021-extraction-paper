@@ -511,7 +511,7 @@ treated in exactly the same way.
 % can be very useful to the target language, for example to generate a
 % better performing code.  Therefore,
 % we turn such relations into assertions in the target language.
-% 
+%
 % Apart from using assertions for optimisations, they are crucially`
 % important in case of partial program extractions.  For example:
 %%\begin{code}[inline]
@@ -542,7 +542,7 @@ This is exactly what \AF{kompile-ty} does in \AF{Fin} case.  We extract the
 argument \AB{x} (obtaining a Kaleidoscope expression), ensuring that extraction
 succeeds.  Then we get the name of the
 function argument referring to \AR{PS.cur} field of the state.  Finally,
-we modify the state by adding a constraint on the corresponding 
+we modify the state by adding a constraint on the corresponding
 argument.
 
 Now, for decidable relations, we can entirely avoid encoding the proof
@@ -648,7 +648,7 @@ guarantees.
 %  open import Relation.Binary.PropositionalEquality
 %  open import Data.Product
 %
-%  Y : Set ; TX : Set ; TY : Set 
+%  Y : Set ; TX : Set ; TY : Set
 %\end{code}
 %\begin{code}
 %  data X : Set where c : (a₁ : Y) {- ... -} → X
@@ -815,7 +815,7 @@ produce a condition that holds only when the encoded value in the
 target language represents the value that was built using the given
 constructor.  For example, as we represent \AF{Fin} with natural numbers,
 the conditions for \AC{zero} \AB{ub} constructor are \AB{e} \AF{==} \AS{0}
-and \AB{e} \AF{<} \AB{ub}. 
+and \AB{e} \AF{<} \AB{ub}.
 Correspondingly, the \AC{suc} \AB{ub} \AB{x} yields two conditions:
 \AB{e} \AF{>} \AS{0} and (\AB{e}\AF{-}\AS{1}) \AF{<} \AB{ub}.
 We make a small optimisation and skip
@@ -919,6 +919,7 @@ module KompTerm where
   open import Relation.Binary.PropositionalEquality using (_≡_ ; refl; cong)
   open import Relation.Nullary
   open Kaleid
+  open ExtrStructMod using (SKS)
   open import Data.Fin as F using ()
   open import Data.List using (length; _++_)
   open import Data.Nat as ℕ hiding (_≟_)
@@ -1278,7 +1279,7 @@ of natural numbers.  Here is Agda definition and the extracted code
                                          --     let m = x_1 ; x = x_3
                                          --     0
   log₂′ {m}     1         _   = 0        --   else if (x_2 > 0) && (x_2 - 1 == 0):
-                                         --     let m = x_1 ; x = x_3 
+                                         --     let m = x_1 ; x = x_3
                                          --     0
   log₂′ {suc m} n@(suc x) n<m =          --   else if (x_1 > 0) && (x_2 > 0):
     1 + log₂′ {m = m} (n / 2)            --     let m = x_1 - 1 ; x = x_2 - 1 ; n<m = x_3
