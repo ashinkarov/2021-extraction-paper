@@ -208,21 +208,23 @@
   Dependently-typed host languages empower users to verify a large number
   of properties about the embedded languages and programs written in them.
   The difficult choice is whether to use deep or shallow embedding.  The
-  latter easier to use because the entire infrastructure of the host langauge is
+  latter is easier to use because the entire infrastructure of the host langauge is
   immediately available.  The former gives a full control over the structure
   of embedded programs, but is difficult to use in practice,
   specifically when the embedded language is dependently typed.
   The biggest insight that this paper builds on is that 
-  metaprogamming within the host language eliminates the distinction.
+  metaprogamming-capable host languages eliminate the distinction.
   Shallow embeddings can use all the libraries and tools, yet
   the structure of embedded programs can be accessed via reflection.
 
-  This technique is applied to programming languages that are shallowly
-  embedded into theorem provers, and dependent types are used
-  to encode the properties of interest.   Bringing embedded
-  programs and their properties back into the original language,
-  so that the existing toolchain could be leveraged, is the main
-  focus of this work.  We demonstrate working implementation of
+  This technique is applied in the context of theorem provers
+  and programming languages that are shallowly embedded in them.
+  Dependent types are used
+  to encode the properties of interest.  The main
+  focus of this work is to bring embedded programs and their
+  verified properties from theorem provers back into the original language,
+  so that the existing toolchain could be leveraged.
+  We demonstrate working implementation of
   this technique in Agda by encoding three languages:
   Kaleidoskope, SaC and a subset of APL, culminating in the implementation
   and extraction of a convolutional neural network.
@@ -380,11 +382,12 @@ compiler from APL into executable binaries.
 The key contributions of this paper are:
 \begin{itemize}
     \item We introduce the concept of reflection-based extractors
-            of shallowly-embedded languages in a theorem prover.
+            for shallowly-embedded languages that are embedded
+            in metaprogramming-capable theorem provers.
     \item We extend the reflection API of Agda to accommodate
-            the needs of an array language.  We added the notion
-            of telescopes, selective reduction, and parameter
-            reconstruction.
+      the needs of a first-order array language.  We add
+            the notions of: telescopes, selective reduction,
+            and parameter reconstruction.
     \item We implement extractors for two languages: Kaleidoscope
             and SaC.  We use the latter as a basis for embedding
             a subset of APL.
