@@ -266,9 +266,9 @@ embedding if the extractor does not fail on it.
 
 \subsection{Normalisation}
 Use of unrestricted terms give us an important benefit: we may use any host
-language constructs that are not present in the embedding, as long as we
-eliminate them prior to extraction.  For example, the target language may not
-have the notion of polymorphic or higher functions, yet we could write
+language constructs that are not present in the embedding, as long as they can
+be eliminated prior to extraction.  For example, the target language may not
+have the notion of polymorphic or higher-order functions, yet we could write
 programs such as:
 \begin{code}[hide]
 module NormMod where
@@ -279,14 +279,14 @@ module NormMod where
 \begin{code}
   ex : (n : ℕ) → n < length "999" → ℕ ; ex = ⋯
   fib : (k m n : ℕ) → ℕ
-  fib 0       m n = m
-  fib (suc k) m n = let m' , n' = n , m + n in fib k m' n'
+  fib 0        m n  = m
+  fib (suc k)  m n  = let m' , n' = n , m + n in fib k m' n'
 \end{code}
-In \AF{ex} type \AF{length} is a function from \AD{String} to \AD{ℕ}, buy
+In the type of \AF{ex}, \AF{length} is a function from \AD{String} to \AD{ℕ}, but
 it is applied to a constant string.  In the second clause of \AF{fib} we
 create a tuple (\AB{n} \AC{,} \AB{m} \AF{+} \AB{n})
 and immediately destruct it via pattern matching. Note that \AC{\_,\_}
-is defined as polymorphic dependently-typed constructor:
+is a polymorphic constructor of the dependent sum type \AF{Σ}:
 \begin{code}[hide]
 module SigMod where
   record Σ (A : Set) (B : A → Set) : Set where
@@ -298,26 +298,28 @@ module SigMod where
 \begin{code}
   _,_ : ∀ {A : Set} → {B : A → Set} → (a : A) → B a → Σ A B ; _,_ = ⋯
 \end{code}
-Therefore, neither \AF{length} nor \AF{\_,\_} could be literally extracted
-into Kaleidoscope.
+Therefore, neither \AF{length} nor \AF{\_,\_} can be part of the final
+extracted Kaleidoscope code.
 %The same holds for the universe of types, which we
 %could still use as a convention:
 %\begin{code}
 %  saturated-add : I $ nat ▹ λ max → fin max ▹ λ a → fin max ▹ λ b → ⟨ fin max ⟩ ; saturated-add = ⋯
 %\end{code}
-However, if we simplify the terms, extractors will not need to know anything
-about strings, pairs or universes.
+However, if we simplify the terms, the result no longer contains any
+about strings, pairs or universes, and hence can be extracted safely.
 
 
-Such a simplification can be conveniently achieved by a standard procedure
-called normalisation~\cite{} which applies reduction rules to terms until
-they turn into values or neutral terms.  The normalisation procedure is
-exposed as a part of the reflection API, and the first step of extraction is
-normalises the term and its type.  As extraction operates at the level
-of function definitions, technically we normalise the type and the body
-of the given function and each pattern-matching clause of its definition.
-The latter has to do with propagating rewrite rules which we describe in
-Section~\ref{sec:rewriting}, including our modifications to Agda.
+Such a simplification can be conveniently achieved by
+normalising the terms, i.e.~by applying reduction rules to (sub)terms until
+they turn into values or neutral terms. The first step of extraction is
+normalisation of the term and its type
+%
+Agda's reflection API offers a function \AF{normalise} for normalizing a term.
+However, this will only normalize the term itself and not the body of
+functions used in this term. So we also recursively traverse the
+definition of each function used in the term and normalise them.
+This process is further explained in Section~\ref{sec:rewriting},
+which includes some modifications we had to do to Agda itself.
 
 \subsection{Controlling Reduction}
 
