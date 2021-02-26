@@ -323,9 +323,8 @@ which includes some modifications we had to do to Agda itself.
 
 \subsection{Controlling Reduction}
 
-The manual run of normalisation suggests that sometimes it would be
-convenient to leave function applications as they are.  For example,
-consider the following program:
+In some cases fully normalising a term can lead to undesirable results.
+For example, consider the following program:
 \begin{code}[hide]
 module RedMod where
   open import Relation.Nullary
@@ -355,16 +354,16 @@ module RedMod2 where
   map′ : ∀ {P Q : Set} → (P → Q) → (Q → P) → Dec P → Dec Q ; map′ = ⋯
   m ≟ n = map′ (≡ᵇ⇒≡ m n) (≡⇒≡ᵇ m n) (T? (m ≡ᵇ n))
 \end{code}
-(we only give a part of it here as the actual details are not that important).
+(the details of how \AF{map′} is defined are not relevant here).
 These four functions in the body (\eg{} \AF{map′}, \AF{≡ᵇ⇒≡}, \etc{}) are not
 representable in Kaleidoscope, but comparison of natural numbers is.
 Generally,
-this is a common pattern when we might represent some target language
-definitions in Agda in a radically different way than in the target language.
-Typically this has to do with proof relevance, like in the above case, but could be also general
+there is a common pattern where some target language
+definitions are represented in Agda in a radically different way than in the target language.
+A typical reason for this is proof relevance, like in the above case, but could also be a general
 invariant that we attach to objects.  In such cases, we might decide
-to hard-code the mapping of the Agda function into the target language function.
-For example, in this case we map \AF{\_≟\_} into \AC{Eq}.
+to hard-code the mapping of the Agda function to the target language function.
+For example, in this case we map \AF{\_≟\_} to \AC{Eq}.
 
 In order to do this, we have to make sure that normalisation does not expand
 certain definitions.  This is what the second argument (base) to our interface
@@ -383,7 +382,7 @@ module Funs where
   onlyReduceDefs : ∀ {a} {A : Set a} → List Name → TC A → TC A ; onlyReduceDefs = ⋯
   dontReduceDefs : ∀ {a} {A : Set a} → List Name → TC A → TC A ; dontReduceDefs = ⋯
 \end{code}
-and they give us an environment in which any call to \AF{reduce} or \AD{normalise}
+They give us an environment in which any call to \AF{reduce} or \AD{normalise}
 would respect the list of function names given in the first argument.  In case of
 \AF{onlyReduceDefs} function application would reduce only if the function is
 found in the list.  In case of \AF{dontReduceDefs}, function application would
