@@ -393,15 +393,15 @@ where \AB{t} is either the type or the term.
 % \todo[inline]{Here we explain what is the meaning of the arguments
 % to kompile, and that we had to extend Agda in order to make this happen}
 
-\subsection{\label{sec:maptypes}Mapping Agda Types}
+\subsection{\label{sec:maptypes}Mapping Agda Types to Kaleidoscope}
 
 The next step after normalisation is to verify and translate the type
-signature of embedded function into the target language.  Kaleidoscope
+signature of the embedded function into the target language.  Kaleidoscope
 does not have the actual type annotations within the language, but we
-still need to verify that: a) that the function is first-order; b) the
+still need to verify that: a) the function is first-order; b) the
 argument and return types are from the right universe.
-This is implemented in the \AF{kompile-ty} function, and we present its
-small fragment:
+This is implemented in the \AF{kompile-ty} function, of which we present a
+small fragment here:
 \begin{code}[hide]
 module KompTy where
   open import Reflection hiding (TC; return; _>>=_; _>>_)
@@ -457,10 +457,11 @@ the target language, yet information that they encode may be important
 to preserve for the following two reasons.  First, the toolchain can
 use this information for more aggressive optimisations.  For example,
 the Kaleidoscope expression \texttt{if a > b: x else: y} can be simplified
-to \texttt{x} if we know types that \texttt{a} is greater than \texttt{b}.
+to \texttt{x} if we know from the types that \texttt{a} is greater than \texttt{b}.
 Second, extraction can be applied to partial programs.  When extracted
 functions are being called externally, the calls are not typechecked, so
-the verified argument properties may not hold.  For example, given
+the preconditions on the arguments that would normally be enforced by
+the type system may not hold.  For example, given
 \begin{code}[inline]
   f : (x : ℕ) → x > 0 → ℕ
 \end{code}
@@ -468,18 +469,22 @@ the verified argument properties may not hold.  For example, given
   f = ⋯
 \end{code}, its first argument must not be zero.  This property would be
 respected in any uses of \AF{f} within Agda.  However, as \AB{x} \AF{>}
-\AS{0} cannot be represented, external calls may pass zero to \AF{f}.
+\AS{0} cannot be represented, external calls may pass zero to
+the extracted version of \AF{f}.
 
 Both problems can be solved by turning dependent types into assertions,
-essentially trading static checks for the dynamic ones.  Each dependent
-type can be can be thought of as a (n-fold) relation that encodes some
-facts about its arguments.  The translation scheme looks as follows:
+essentially trading static checks for dynamic ones.  Each dependent
+type can be can be thought of as a predicate that encodes some properties
+of the terms that appear in the type (as well as the element of the
+dependent type itself, in case it is proof-relevant). The translation scheme for extracting some
+dependent type $\AF{P} : \AF{I} → \AF{Set}$ looks as follows:
 \begin{code}[hide]
-  I : Set ; TP : Set ; TI : Set ; enc-i : I → TI
+  I : Set ; TP : Set ; TI : Set
 \end{code}
 \begin{code}
-  P : I → Set ; T : Set → Set -- T (P i) ≡ TI ; T (P i) ≡ TP
-  enc-p : ∀ {i} (p : P i) → TP ; assrt-p : (ti : TI) (tp : TP) → Bool
+  P : I → Set ; T : Set → Set -- T I ≡ TI ; T (P i) ≡ TP
+  enc-i : I → TI ; enc-p : ∀ {i} (p : P i) → TP
+  assrt-p : (ti : TI) (tp : TP) → Bool
   sound-p : ∀ {i}{p : P i} → assrt-p (enc-i i) (enc-p p) ≡ true
   complete-p : ∀ ti tp → assrt-p ti tp ≡ true → ∃₂ λ i (p : P i) → ti ≡ enc-i i × tp ≡ enc-p p
 \end{code}
@@ -487,19 +492,18 @@ facts about its arguments.  The translation scheme looks as follows:
   P = ⋯ ; I = ⋯ ; TI = ⋯ ; TP = ⋯ ; T = ⋯
   enc-i = ⋯ ; enc-p = ⋯ ; assrt-p = ⋯ ; sound-p = ⋯ ; complete-p = ⋯
 \end{code}
-For a given 1-place relation \AD{P} over \AD{I} the mapping \AD{T}
+The mapping \AD{T}
 chooses basic types \AD{TI} and \AD{TP} that encode \AD{I} and \AD{P}.
 Note that the
-encoding type of \AD{P} does not depend on its argument.  The encoding
-function \AF{enc-p} translates proofs (of type \AD{P} \AB{i} for all
-\AB{i}s) into the chosen encoding type \AD{TP}.  Assertion function
-\AD{assrt-p} decides whether the encoded argument \AB{ti} is related by
-\AD{P}, given the encoded proof \AD{tp}.  In other words, whether
-\AD{tp} is in the image of \AF{enc-p}.  The assertion is correct
-if it is sound and complete: for every argument \AB{i} and proof \AB{p},
-assertion procedure returns true; and every related encodings \AB{ti}
-and \AB{tp} have inverses \AB{i} and \AB{p} such that \AB{p} is a
-proof of \AD{P} \AB{i}.  Relations of multiple argument can be
+encoding type $\AD{T} (\AD{P}\ i) = \AF{TP}$ does not depend on the argument $i$. The
+encoding function \AF{enc-i} translates elements of the base type \AD{I}
+to \AD{TI}, and \AF{enc-p} translates elements of type \AD{P} \AB{i}
+into the chosen encoding type \AD{TP}. Meanwhile, the assertion function
+\AD{assrt-p} decides whether the encoded arguments \AB{ti} and \AB{tp}
+come from a valid input, that is whether \AB{tp} is the image under \AF{enc-p} of some
+$\AB{p} : \AD{P}\ i$ where \AB{ti} is the image of \AB{i}.
+Soundness and completeness express that \AF{assrt-p} returns \AC{true} if and only if this
+is the case. Dependent types with multiple arguments can be
 treated in exactly the same way.
 
 
@@ -537,42 +541,43 @@ treated in exactly the same way.
 
 \AF{Fin} can be seen as a predicate on \AF{ℕ} where the witness is defined
 using two constructors: \AC{zero} and \AC{suc}.  Our encoding of the witness
-will be \AB{ℕ}, and the assertion procedure would be comparison whether the
+will be \AD{ℕ}, and the assertion procedure would check whether the
 encoded witness is less than the argument to \AD{Fin} (the upper bound).
-This is exactly what \AF{kompile-ty} does in \AF{Fin} case.  We extract the
+This is exactly what \AF{kompile-ty} does for the \AF{Fin} case.  We extract the
 argument \AB{x} (obtaining a Kaleidoscope expression), ensuring that extraction
 succeeds.  Then we get the name of the
-function argument referring to \AR{PS.cur} field of the state.  Finally,
+function argument by referring to the \AR{PS.cur} field of the state.  Finally,
 we modify the state by adding a constraint on the corresponding
 argument.
 
 Now, for decidable relations, we can entirely avoid encoding the proof
-object, given that the structure of the proof is never accessed within
-the function.  In other words if we do not pattern-match on the proof.
-As \AD{\_≡\_} and \AD{\_<\_} are both decidable for natural numbers,
+object, as long as the computational behaviour of the function does not
+depend on the structure of the proof. This is in particular always the
+case for proof-irrelevant types.
+As \AD{\_≡\_} and \AD{\_<\_} are both decidable for natural numbers and proof-irrelevant,
 we encode the elements of types with the unit value (natural number \AS{1}).
-In the assertion we use the decision procedure, that returns the \AD{Dec} type
+We then generate an assertion that uses the decision procedure. This
+decision procedure returns an element of the \AD{Dec} type
 which we interpret as a boolean value: \AS{1} for \AC{yes} and 0 for \AC{no}.
 Pattern matching on the value of \AD{\_≡\_} is straight-forward as there
 is only one constructor.  Constructors of \AD{\_<\_}
 essentially encode the difference between the arguments, which we
-have chosen not to encode.  Pattern-matching on the values of \AD{\_<\_}
-results in error.
+have chosen not to encode since it can be reconstructed easily.
 %Otherwise we were to lose information,  for example:
 %\begin{code}
 %  ex₆ : ∀ {a b} → a ℕ.< b → ℕ
 %  ex₆ (s≤s z≤n) = 1
 %  ex₆ (s≤s (s≤s a<b)) = 1 ℕ.+ ex₆ (s≤s a<b)
 %\end{code}
-Therefore we are only allowed to pass the inequality around, but not
-``look inside''.  This choice could be surely revised, however as we
-will see later, we mostly use inequalities as a static assertion.
-%rather than a runtime value.
+As a consequence we are only allowed to pass the inequality around, but not
+``look inside'' the proof. A different extraction scheme that does not erase
+equality proofs is surely possible, but since we only use inequalities as
+a static assertion erasing them works well in our case.
 
-The return type of the function also generates an assertion
-using the same rules.  We organise the body of the reflected function
-such that there is exists a variable that binds the return value.
-The assertion is attached to that variable.  For example:
+If a function returns a value of a dependent type, we also generate an assertion
+using the same rules. We organise the body of the extracted function
+such that there is a fixed variable binding the return value,
+and attach the assertion to that variable. Here is an example:
 \begin{code}[hide]
 module ExFin where
   open import Data.Fin using (Fin; fromℕ<)
@@ -601,26 +606,27 @@ module Signatures where
   fromℕ< = ⋯
   n<1+n = ⋯
 \end{code}
-The \AF{fromℕ<} function turns a proof of \AB{m} \AF{<} \AB{n} into
-\AF{Fin} \AB{n} type.  As we are encoding \AF{Fin}s as natural numbers,
-extractor can hardcode \AF{fromℕ<} to return the left hand side of the
-\AF{\_<\_} argument.  Luckily,
-with dependent types we \emph{always have access} to the arguments
-of the relation.  There is simply no way to construct an abstract relation
-of two things without telling what they are.
+The \AF{fromℕ<} function turns a proof of \AB{m} \AF{<} \AB{n} into an element of type
+\AF{Fin} \AB{n}.  As we are encoding \AF{Fin}s as natural numbers,
+the extracted version of \AF{fromℕ<} can just return the left-hand side of
+\AF{\_<\_}. Luckily, it is always possible to extract the type-level arguments
+of a dependent type such as \AF{\_<\_}:
+it is simply impossible to construct a proof of \AB{m} \AF{<} \AB{n}
+without also being able to construct \AB{m} and \AB{n}.
 In this particular case, the first hidden argument \AB{m}
-is the value that we are after.  Extraction of the \AF{fromℕ<} returns
+is the value that we are after. Hence the extracted version of \AF{fromℕ<} returns
 the first argument and ignores all
-the other arguments.  Note that by doing so we are not loosing any information,
+the other arguments.  Note that by doing so we are not losing any information,
 as the proof here is merely asserting that \AB{m} fits the specification.
 This ability to ignore runtime-irrelevant relations
 is insightful, as it helps to avoid a lot of unnecessary work
-keeping the extracted code more efficient.
+and keeps the extracted code efficient.
 
-Why do we assert the return result if we are guaranteed that it is
-correct by construction?  Because reconstruction of the predicate in
-the return type is generally undecidable.  This information may
-be used by the target language toolchain.  All these assertions may
+It might seem that the assertion on the result is unneccessary here, since we are guaranteed that it is
+correct by construction. However, by inserting this assertion we can
+pass on information further down the toolchain, which may be used for example
+by the compiler of the target language to perform more optimizations.
+All these assertions may
 be turned off if a programmer or a compiler decides so, but this is
 not a concern of the extractor.
 
