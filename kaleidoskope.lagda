@@ -979,7 +979,7 @@ module KompTerm where
   normalise-name : String → String ; normalise-name = ⋯
 \end{code}
 \begin{code}
-  kompile-term : Term → Telescope → SKS $ Err Expr
+  kompile-term : Term → Telescope → SKS (Err Expr)
   kompile-term (def (quote _+_) args@(arg _ a ∷ arg _ b ∷ [])) vars = do
     a ← kompile-term a vars
     b ← kompile-term b vars
@@ -1018,7 +1018,7 @@ extract the first argument from the \AB{args} list.
 The last clause deals with general function calls that do not require special
 treatment.  We ensure that argument list is non-empty: the \AF{\_ ∷ \_} pattern.
 Then we add the name of the function into the \AR{funs} field of the state record.
-This list would be used by \AF{kompile} to traverse the call graph of the function
+This list will be used by \AF{kompile} to traverse the call graph of the function
 and extract all the necessary dependencies.  Then we extract the arguments, using
 the helper function \AF{mk-iota-mask} that generates indices from \AS{0} to the
 length of the argument list.  Finally we create an \AD{Expr}ession for a function
