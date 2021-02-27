@@ -1303,17 +1303,18 @@ otherwise lead to non-termination.
 
 \subsection{Monadic Workaround for Lets}
 One of the unfortunate design choices of the Agda internal language is
-the lack of let constructs.  All the lets we use in the code are eliminated
-by substituting the bound expression in the body of the let.  While
-this is sound semantically, it may lead to unnecessary code duplication:
+the lack of a `let' construct.  All the lets we use in the code are eliminated
+eagerly through substitution of the bound expression in the body.  While
+this is semantically sound, it leads to unnecessary code duplication:
 \begin{code}
   ex₈ : ℕ → ℕ
   ex₈ x = let a = x * x + 3 * x + 5 in a + a -- ⇒ (x * x + 3 * x + 5) + (x * x + 3 * x + 5)
 \end{code}
-While this is too large of a change in Agda, we can use the following
+While changing Agda itself to support `let' in the internal language
+would be a major change, we can use the following
 elegant workaround.  Agda's do-notation is a syntactic sugar that
-expands if we define two operations \AF{\_>>=\_} and \AF{return}
-for some monad~\cite{}.  This includes the identity monad as well:
+expands to the monadic operations \AF{\_>>=\_} and \AF{return}.
+In particular, we can work in the identity monad:
 \begin{code}[hide]
 module Monadic where
   open import Data.Nat as ℕ hiding (_≟_)
