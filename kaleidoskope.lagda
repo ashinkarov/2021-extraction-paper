@@ -632,15 +632,16 @@ not a concern of the extractor.
 
 \subsection{Pattern Matching}
 Many target languages do not support function
-definitions in a pattern-matching style, whereas in Agda it is very
-common.  Most of data structures are inductive, and pattern-matching
-is a natural way of traversing them. It also helps the termination
-checker to identify whether recursive calls are structural~\cite{}.
-As a result, turning a list of pattern-matching
-clauses into a single conditional is a common task in extractors.
-In this section we demonstrate a possible solution and we show
-that implementation of extractors in Agda can benefit extra safety
-guarantees.
+definitions in a pattern-matching style, whereas in Agda it is the primary
+way of defining functions. Most Agda data structures are inductive, and pattern-matching
+is a natural way of traversing them. Agda's termination checker also
+relies on structural recursion to prove termination, which requires
+pattern matching to reveal structurally smaller arguments..
+Hence extractors often need to transform a definition by pattern matching
+into one using conditionals.
+In this section we demonstrate a possible approach to do this.
+We also show how implementing the extractor in Agda can lead to
+extra safety guarantees.
 
 
 % The key mechanisms that we need to implement for each constructor \AC{c} of
@@ -673,11 +674,12 @@ guarantees.
 %of \AD{X} that encodes to \AB{tx}.
 
 
-The problem splits naturally into two parts: compute a condition from
-the given clause, and join all such conditions in a single conditional.
+The problem of compiling a definition by pattern matching splits
+naturally into two subproblems: computing a condition from
+each given clause, and joining all such conditions in a single conditional.
 Let us start with the second part.
 
-We implement the algorithm in \AF{kompile-cls} function
+We implement the algorithm in the \AF{kompile-cls} function
 of the following type:
 % TODO we also call kompile-term in this function!
 \begin{code}[hide]
@@ -695,11 +697,11 @@ module Cls where
 \end{code}
 The first argument is the list of clauses, the second argument is the
 list of variable names, and the last argument is the name of the variable
-we assign the return value to.  The function operates in the \AD{SKS}
-monad as we are extracting the body of each clause, so we need to propagate
-the extraction state.  The function traverses clauses in order they appear
+we assign the return value to.  As we are extracting the body of the clauses,
+we need to propagate the state of extraction, so the function operates in the \AD{SKS}
+monad.  The function traverses clauses in the order they appear
 in the definition and combines them in a nested if-then-else chain as
-follows:
+in the following example:
 \begin{code}
   ack : ℕ → ℕ → ℕ                                  -- def ack (x1, x2):
   ack 0       n       = 1 + n                      --   if x1 == 0: 1 + x2
@@ -707,20 +709,24 @@ follows:
   ack (suc m) (suc n) = ack m (ack (suc m) n)      --   else: ack (x1-1) (ack x1 (x2-1))
 \end{code}
 %While the definition of the function is straight-forward,
-There are two important aspects to notice.  Firstly, in the second conditional
-we have explicit
-\AB{x1} \AF{>} \AS{0} check that could have been omitted.  However, if the first
+Note that in the second conditional, we have an explicit check that
+\AB{x1} \AF{>} \AS{0}, which is redundant.  However, if the first
 and the second clauses were swapped, such a comparison with zero must be
-present.  Our current implementation takes minimalist approach and generates
-predicates in the simplest possible form, without optimising extra comparisons
-as above.  Many target languages may perform such an optimisation themselves.
-Also, and more importantly, one of the internal representations of Agda has the
-form, where all the patterns are folded.  Currently it is not exposed via the
-reflection API, but as it works universally for any term, it might be simpler
-to extend the API rather than reimplementing pattern folding.
+present.  Our current implementation takes a minimalist approach and generates
+predicates for each clause separately, without taking the previous clauses
+into account.
+Many target languages will optimize away such redundant checks.
 
-Secondly, absurd patterns have to be treated with care.  For example, consider
-the following function:
+As a side note, Agda internally represents definitions by pattern
+matching as \emph{case trees} where most redundant checks have been
+eliminated. However, unfortunately this representation is currently
+not available via the reflection API. However, if we wanted to
+generate more efficient code it would probably be simpler to extend
+the reflection API rather than reimplement the translation to a case
+tree ourselves.
+
+If we compile a definition with \emph{absurd patterns}, they have to
+be treated with care.  For example, consider the following function:
 \begin{code}[hide]
 module Ex9 where
   open import Relation.Binary.PropositionalEquality
@@ -747,33 +753,34 @@ to the target language.  Consider the following example:
   ex₁₀ : ∀ x → 0 < P x → ℕ
   ex₁₀ 1 () ; ex₁₀ 2 () ; ex₁₀ x pf = ⋯
 \end{code}
-We can generate an assertion that \AB{x} is greater than \AF{P} \AB{x}, and
+We can generate an assertion that \AF{P} \AB{x} is greater than 0, and
 after eliminating first two cases, the body of the function would reduce to a single
 statement over variables \AB{x} and \AB{pf}.  However, deducing that
-\AB{x} not equals to \AS{1} and \AS{2} is not straight forward (undecidable in
-general).  By preserving this information, the target language might make a
-good use of it.
+\AB{x} does not equal \AS{1} or \AS{2} is not straightforward.
+By preserving this information as an assertion, the compiler of the
+target language can make good use of it.
 
-To preserve the absurd patterns, target languages must provide the way to terminate
-computation on the given conditional.  Currently, we are using the
+To preserve the absurd patterns, the target language must provide a way to terminate
+computation. Here we use the
 \AF{assert} (\AS{0}) construction to abort the computation.  Note that such an
 abort construction is needed irrespectively of whether we preserve absurd patterns
-or not, as we need a constructor that expresses the case when the function has
-a single absurd clause \eg{}:
+or not, as we need a way to express functions with a single absurd clause, \eg{}:
 \begin{code}
   ex₁₁ : ∀ n → n < 0 → ℕ      -- def ex11 (x1, x2):
   ex₁₁ n ()                   --   assert (0)
 \end{code}
-The problem here is that per semantics of our target language we need to return
-some value.  The function from above does not provide any value, as it has shown
-that no arguments can possibly satisfy the type signature, and ex falso quodlibet
-(or the principle of explosion) states that anything is deducible from falsehood.
-For example, a natural number, but it does not tell us which one!  While inventing
-a natural number is easy, generally, inventing a value of the given type is
-undecidable.
+The function from above does not provide any body, and instead simply shows that
+no arguments can possibly satisfy the type signature.
+%
+The problem here is that to generate a syntactically valid program in the target
+language we need to give a body to the function.
+%
+Rather than returning an arbitrary value, we abort computation to signal to
+the target language compiler that this function is not supposed to be called
+at runtime.
 
 The actual translation between pattern lists and predicates is implemented in
-with the following function:
+the function \AF{kompile-clpats}:
 
 \begin{code}[hide]
 module ClPats where
@@ -799,7 +806,7 @@ module ClPats where
 \end{code}
 \begin{code}
   {-# TERMINATING #-}
-  kompile-clpats : Telescope → (pats : List $ Arg Pattern) → (exprs : List Expr) → PatSt → Err PatSt
+  kompile-clpats : Telescope → (pats : List (Arg Pattern)) → (exprs : List Expr) → PatSt → Err PatSt
   kompile-clpats tel (arg i (con (quote F.zero) ps) ∷ l) (e ∷ ctx) pst =
     kompile-clpats tel l ctx $ pst +=c (BinOp Eq e (Nat 0))
   kompile-clpats tel (arg i (con (quote F.suc) ps@(_ ∷ _ ∷ [])) ∷ l) (e ∷ ctx) pst = do
@@ -808,55 +815,75 @@ module ClPats where
                    $ pst +=c (BinOp Gt e (Nat 0))
   kompile-clpats tel ps ctx pst = ⋯
 \end{code}
-We are considering only two clauses of the functions that matches \AF{Fin}
-constructors \AC{zero} and \AC{suc}.  The function take four arguments:
+%
+The function take four arguments:
 the telescope mapping variables used in the pattern list to their names
 and types (see Section~\ref{sec:rewriting} for details on telescopes);
 the list of patterns; the list of expressions that are being matched
-by the patterns; and the state record \AD{PatSt}.  The state record
-contains things like the counter for fresh variables, the list of conditions
-accumulated so far, local assignments, and so on.  At the beginning of each
-clause, the list of expressions is initialised with function arguments.
-For each constructor-pattern (like \AF{zero} or \AF{suc}) we have to
+by the patterns; and the state record \AD{PatSt}. When compiling a clause,
+the list of expressions is initialised with the function arguments. The state record
+contains the counter for fresh variables, the list of conditions
+accumulated so far, local assignments, and so on.
+
+Here we show only two clauses for compiling a function that matches on the
+\AF{Fin} constructors \AC{zero} and \AC{suc}, respectively.
+%
+For each constructor pattern we
 produce a condition that holds only when the encoded value in the
 target language represents the value that was built using the given
 constructor.  For example, as we represent \AF{Fin} with natural numbers,
-the conditions for \AC{zero} \AB{ub} constructor are \AB{e} \AF{==} \AS{0}
-and \AB{e} \AF{<} \AB{ub}.
-Correspondingly, the \AC{suc} \AB{ub} \AB{x} yields two conditions:
+the conditions for matching \AB{e} against a pattern \AC{zero} \{\AB{ub}\}
+constructor are \AB{e} \AF{==} \AS{0} and \AB{e} \AF{<} \AB{ub}.
+However, note that the precondition generated from the type of \AB{e}
+already enforces that \AB{e} \AF{<} \AB{ub}, so we do not need to check
+it again.
+%
+Correspondingly, the pattern \AC{suc} \{\AB{ub}\} \AB{x} yields two conditions:
 \AB{e} \AF{>} \AS{0} and (\AB{e}\AF{-}\AS{1}) \AF{<} \AB{ub}.
-We make a small optimisation and skip
-generation of the conditions for upper bounds in both constructors.
-This is valid under the assumption that we have asserted
-that the argument is less than the argument of \AF{Fin} type
-at the entry of the function.
+Like before, the check that (\AB{e}\AF{-}\AS{1}) \AF{<} \AB{ub} is
+redundant and can be skipped.
+%
 The \AF{pst-fresh} function generates a variable with the unique
 (within the clause) name, and \AF{\_+=c\_} adds new condition into
 the state.
 
-Notice that we marked this function as terminating.  We had to do
-so as termination checker cannot prove that the call in the second
-clause is valid.
-Specifically, the \AB{ps} \AF{++} \AB{l} argument is problematic.
-Indeed, if we keep increasing the list of the patterns recursively,
-then the function might not terminate.  While this particular function
-is actually safe, we can prove this formally, demonstrating the power
-of Agda when building extractors.
+Note that we marked this function as terminating.  We had to do
+so as termination checker cannot prove that the recursive call
+to \AF{kompile-clpats} in the second clause is valid.
+Specifically, the \AB{ps} \AF{++} \AB{l} argument is problematic
+as it is not structurally decreasing.
+Indeed, if we keep increasing the list of the patterns at each recursive step
+then the function might not terminate.
+%While this particular function
+%is actually safe, we can prove this formally, demonstrating the power
+%of Agda when building extractors.
 
 The function is terminating because the \AF{Pattern} type is well-founded,
-and all the objects of that type are finite.  Therefore, if we find a
-metric that would witness this and decrease at each \AF{kompile-clpats} call,
-our recursion would become structural.  Here is one way to do this:
+and all the objects of that type are finite. We can prove this formally
+by extending \AF{kompile-clpats} with an extra argument $\AB{m} : \AF{ℕ}$,
+together with a proof of \AF{sz} \AB{pats} \AF{<} \AB{m}, where
+the size of a list of patterns is defined as follows:
 \begin{code}
-  sz : List $ Arg Pattern → ℕ
+  sz : List (Arg Pattern) → ℕ
   sz [] = 0
   sz (arg i (con c ps) ∷ l) = 1 + sz ps + sz l
   sz (arg i _ ∷ l) = 1 + sz l
+\end{code}
+For a given pattern list we chose an upper bound that is one greater than the
+actual size of the pattern list. For the full details of how we prove
+termination of \AF{kompile-clpats}, see the code accompanying this paper.
 
+
+
+\begin{comment}
+Therefore, if we find a
+metric that would witness this and decrease at each \AF{kompile-clpats} call,
+our recursion would become structural.  Here is one way to do this:
+\begin{code}
   ps++l<m : ∀ {m} ps l → suc (sz ps + sz l) ℕ.< suc m → sz (ps ++ l) ℕ.< m
   sz[l]<m : ∀ {m} ps l → suc (sz ps + sz l) ℕ.< suc m → sz l ℕ.< m
 
-  kompile-clpats′ : ∀ {m} → Telescope → (pats : List $ Arg Pattern) → .(sz<m : sz pats ℕ.< m)
+  kompile-clpats′ : ∀ {m} → Telescope → (pats : List (Arg Pattern)) → .(sz<m : sz pats ℕ.< m)
                  → (exprs : List Expr) → PatSt → Err PatSt
 
   kompile-clpats′ {suc m} tel (arg i (con (quote F.zero) ps) ∷ l) sz<m (v ∷ ctx) pst =
@@ -904,6 +931,8 @@ module Wrapper where
 For a given pattern list we chose an upper bound that is one greater than the
 actual size of the pattern list.  The proof that the upper bound holds is
 straight-forward and is witnessed by a standard library function \AF{≤-refl}.
+\end{comment}
+
 
 %\todo[inline]{Do we want to say anything about the overall idea of folding
 %  pattern-matching cases into a conditional, and reverse mappings of the
