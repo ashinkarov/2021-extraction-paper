@@ -1351,9 +1351,9 @@ We take the simplest specification, and we assume that logarithm of zero
 is zero.  One difficulty with this function is that it is not structurally
 recursive and Agda does not recognise that it terminates.  Therefore
 we need to take some steps to prove this.  We are going to use a standard
-technique of recursing on a well-founded \AF{\_<\_} predicate (comparison
-of natural numbers.  Here is Agda definition and the extracted code
-(slightly reformatted) arranged line-by-line:
+technique of recursing on a well-founded \AF{\_<\_} predicate (inequality
+of natural numbers).  Here is Agda definition and the extracted code
+(slightly reformatted) arranged side-by-side:
 
 \begin{code}[hide]
   open import Data.Nat.DivMod
@@ -1366,8 +1366,8 @@ of natural numbers.  Here is Agda definition and the extracted code
   x<m⇒sx/2<m x m x<m = ≤-trans (m/n<m (suc x) 2 (s≤s z≤n) ≤-refl) x<m
   -- Extracted with command : kompile log₂ (quote ≤-refl ∷ quote _<_ ∷ []) []
   log₂′ : ∀ {m} → (n : ℕ) → (n < m) → ℕ  -- def log2' (x_1, x_2, x_3):
-                                         --   ·let x_3_assrt = assert (x_2 < x_1)
-  log₂′ {m}     0         _   = 0        --   ·let __ret = if (x_2 == 0):
+                                         --   let x_3_assrt = assert (x_2 < x_1)
+  log₂′ {m}     0         _   = 0        --   let __ret = if (x_2 == 0):
                                          --     let m = x_1 ; x = x_3
                                          --     0
   log₂′ {m}     1         _   = 0        --   else if (x_2 > 0) && (x_2 - 1 == 0):
@@ -1396,8 +1396,9 @@ used in \AF{kompile-clpats} and the fact that \AS{1} is represented as
 is greater than zero before subtracting one.  However, this could be further
 optimised either by the target language or as a post-extraction step.
 
-In the recursive case, division looks suspiciously complex, and instead of the
-proof we have the value \AS{1}.  The reason for the complexity of the division
+In the recursive case, division looks suspiciously complex.
+%
+The reason for the complexity of the division
 operation is because \AF{\_/\_} expands to the internal representation given by a
 \AF{div-helper} \AB{k} \AB{m} \AB{n} \AB{j} that corresponds to the expression
 \AB{k} \AF{+} ((\AB{n}\AF{+}\AB{m}\AF{-}\AB{j}) \AF{/} (\AS{1}\AF{+}\AB{m})).
@@ -1407,7 +1408,9 @@ without suppression (\AS{2}\AF{+}\AB{n})\AF{/}\AS{2} normalises to
 \AS{1}\AF{+}(\AB{n}\AF{/}\AS{2}), whereas suppressed \AF{\_/\_} would be treated
 as an opaque object.
 
-As for the proof, per our assumption, \AF{\_<\_} is used as a static assertion
+Another suspicious aspect of the extracted code is how the recursive call uses
+the value \AS{1} instead of an actual proof.
+Per our assumption, \AF{\_<\_} is used as a static assertion
 (we cannot pattern-match on its value).  This means that any function that has
 a return type \AB{a} \AF{<} \AB{b} can be replaced with the unit value.  This
 is valid, because we are extracting function calls that were verified by the
@@ -1416,12 +1419,13 @@ only acknowledging that the type is inhabited.  This particular case relies
 on \AF{≤-trans} (from the inlined proof) and \AF{≤-refl} (from \AF{log₂}
 definition) being extracted into unit values.
 
-We have the \AK{else} case that is not specified in the original code on the left.
-The reason for this is that our pattern-matching
-is not exact.  We are missing the case where \AB{m} is zero and \AB{n} is greater
-than \AS{2}.  While the coverage checker is convinced that such case is impossible,
-the missing case is automatically inserted into internal representation
-as an absurd clause.
+There is also the final \AK{else} case, which is not specified in the
+original code on the left.  The reason for this extra case is that our
+pattern matching is not complete.  We are missing the case where
+\AB{m} is zero and \AB{n} is greater than \AS{2}.  While Agda's
+coverage checker agrees that such case is impossible, it automatically
+inserts the missing case into internal representation as an absurd
+clause.
 
 Finally, in the \AF{log₂} definition, \AF{≤-refl} is a proof that \AB{x} is less
 than \AB{x}\AF{+}\AS{1}.
