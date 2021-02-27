@@ -314,12 +314,81 @@ normalising the terms, i.e.~by applying reduction rules to (sub)terms until
 they turn into values or neutral terms. The first step of extraction is
 normalisation of the term and its type
 %
+
+\subsubsection{Telescopes}
 Agda's reflection API offers a function \AF{normalise} for normalizing a term.
 However, this will only normalize the term itself and not the body of
-functions used in this term. So we also recursively traverse the
-definition of each function used in the term and normalise them.
-This process is further explained in Section~\ref{sec:rewriting},
-which includes some modifications we had to do to Agda itself.
+functions used in this term.
+%
+This is a technical limitation that has to do with the chosen internal
+represenation of the pattern-matching functions.
+%
+To work around this limitation, we also recursively traverse the
+definition of each function used in the term and normalise all terms
+in their bodies.
+
+In order to normalise the right-hand side of a clause in a function definition,
+we need to provide the right context with the types of the pattern
+variables of that clause, which is non-trivial to reconstruct.
+%
+In particular, it is non-trivial because we would have to reverse-engineer
+the choices that the Agda type checker made while elaborating the
+clause to its internal representation.
+%
+Here is an example showing the contexts that we would need to compute
+for the function that is adding two vectors element-wise:
+\begin{code}[hide]
+  open import Data.Nat as ℕ hiding (_≟_)
+  open import Data.Vec using (Vec; []; _∷_)
+\end{code}
+\begin{code}
+  vadd : ∀ {n} → (a b : Vec ℕ n) → Vec ℕ n
+  -- ^ type : {n : ℕ} (a : Vec ℕ v0) (b : Vec ℕ v1) → Vec ℕ v2
+  vadd {n} []       _        = []
+  -- ^ cxt  : (Vec ℕ 0)
+  vadd {n} (x ∷ xs) (y ∷ ys) = x + y ∷ vadd xs ys
+  -- ^ ctx  : (m : ℕ) (x : ℕ) (xs : Vec ℕ v0) (y : ℕ) (ys : Vec ℕ v3)
+\end{code}
+We use the \texttt{vi} notation for de Bruijn index \texttt{i}.  The
+first context contains the type for the second vector (underscore),
+but does not contain an entry for \AB{n}, as it is instantiated to
+\AC{zero} internally.
+%
+In the second context the binding \AB{m} does not correspond to the
+first element of the context, as \AB{n} is instantiated to \AC{suc}
+\AB{m} internally.
+
+Instead of trying to recomputing contexts we have extended the reflection
+API to provide us the correct one.  This has been implemented in the
+pull request \url{https://github.com/agda/agda/pull/4722}.
+%
+In the new version of the reflection API, each clause of the function
+definition comes with an extra argument of type \AD{Telescope}:
+\begin{code}[hide]
+module TelMod where
+  open import Data.Product
+  open import Reflection using (Term; Type; Arg; Pattern)
+  open import Data.Nat as ℕ hiding (_≟_)
+\end{code}
+\begin{code}
+  Telescope = List (Σ String λ _ → Arg Type)
+  data Clause : Set where
+    clause        : (tel : Telescope) (ps : List (Arg Pattern)) (t : Term) → Clause
+    absurd-clause : (tel : Telescope) (ps : List (Arg Pattern)) → Clause
+\end{code}
+The telescope is the list of pairs where each pair contains the name
+and the type of a free variable.  When the definition is reflected,
+the telescope is constructed from the internal representation of the
+definition.
+
+As a result, we can straight-forwardly apply normalisation to the body
+of the given clause.  Given \AC{clause} \AB{ctx} \AB{pat} \AB{t}, we may
+run \AF{inContext} \AB{ctx} (\AF{normalise} \AB{t}), which solves the
+problem of rewrite rule propagation, and it is guaranteed that the context
+is correct.
+%Such a call is performed by \AF{kompile} function for every
+%extracted function.
+
 
 \subsection{Controlling Reduction}
 
@@ -1033,6 +1102,33 @@ unicode symbols.
 % telescopes (that Jesper added to Agda) facilitates pushing rewriting
 % under the function clauses, which used to be a nightmare.}
 
+A common way to define domain-specific compiler optimizations is through
+the specification of \emph{rewrite rules} that rewrite terms matching
+a given pattern to an equivalent form that is either more efficient
+or reveals further optimization opportunities.
+%
+By giving a shallow embedding of our target language in Agda, we have
+the opportunity to define \emph{verified} rewrite rules, by providing
+a proof that the left- and right-hand side of the rewrite rule are
+equivalent.
+%
+To achieve this, we could define our own representation of verified
+rewrite rules and integrate them into the extractor.
+%
+However, we can avoid the effort of doing so since Agda already has a
+built-in concept of rewrite rules.
+%
+Rewrite rules were originally introduced to Agda to work around the
+limitations of definitional equality in intentional type theory.
+%
+For example, it can be used to make $0 + x$ definitionally equal to
+$x + 0$.
+%
+Since we work with a shallow embedding, these rewrite rules are
+equally well suited to optimize the embedded programs we write before
+they are extracted.
+
+\begin{comment}
 One of the unfortunate features of intuitionistic dependently-typed systems is the
 distinction between definitional and propositional equalities.  A famous
 example that demonstrates the problem is the addition of natural numbers defined
@@ -1041,6 +1137,7 @@ inductively on the first argument:
 module PlusZ where
   open import Data.Nat as ℕ hiding (_≟_; _+_)
   open import Relation.Binary.PropositionalEquality
+  open import Agda.Builtin.Equality.Rewrite
 \end{code}
 \begin{mathpar}
 \codeblock{%
@@ -1095,18 +1192,17 @@ can be registered as rewrite rules.  For example:
 \begin{mathpar}
 \codeblock{%
 \begin{code}
-  plus-0 : ∀ x → x + 0 ≡ x
-  plus-0 zero    = refl
-  plus-0 (suc x) = cong suc $ plus-0 x
+  --plus-0 : ∀ x → x + 0 ≡ x
+  --plus-0 zero    = refl
+  --plus-0 (suc x) = cong suc $ plus-0 x
 \end{code}
 }
 \and
 \codeblock{
 \begin{code}
-  {-# BUILTIN REWRITE _≡_ #-}
-  {-# REWRITE plus-0 #-}
-  plus-0-test : ∀ x → x + 0 ≡ x
-  plus-0-test x = refl
+  --{-# REWRITE plus-0 #-}
+  --plus-0-test : ∀ x → x + 0 ≡ x
+  --plus-0-test x = refl
 \end{code}
 }
 \end{mathpar}
@@ -1117,14 +1213,31 @@ is definitionally equal to \AB{x}.
 
 In the context of extraction rewrite rules can be seen as a mechanism to define
 custom optimisations.  As rewrite rules are applied prior to extraction, extractors
-are operating on rewritten terms.  The benefit of this approach is that rewrite
+are operating on rewritten terms. The benefit of this approach is that rewrite
 rules that we register are \emph{formally verified} (when using \AF{\_≡\_} as a
-rewrite relation).  For example, we could define the following rule that we were
-taught at school:
+rewrite relation).
+\end{comment}
+%
+A typical example of a rewrite rule in Agda rewrites expressions of
+the form \AB{x} \AF{+} 0 to \AB{x}.  Here is how we can define and
+verify this rule:
+%
+\begin{code}
+  plus-0 : ∀ x → x + 0 ≡ x
+  plus-0 zero    = refl
+  plus-0 (suc x) = cong suc $ plus-0 x
+  {-# REWRITE plus-0 #-}
+\end{code}
+The definition of \AF{plus-0} proves the equivalence of the left- and
+right-hand sides of the rule, and the REWRITE pragma registers it as a
+rewrite to be applied automatically during normalisation.  As another
+example, we could define the following rule that we were taught at
+school:
 \begin{code}[hide]
 module PlusZSolv where
   open import Data.Nat as ℕ hiding (_≟_)
   open import Relation.Binary.PropositionalEquality
+  open import Agda.Builtin.Equality.Rewrite
 \end{code}
 \begin{code}
   open import Data.Nat.Solver ; open +-*-Solver
@@ -1134,10 +1247,12 @@ module PlusZSolv where
   {-# REWRITE sum-square #-}
 \end{code}
 so that we can perform two arithmetic operations instead of six when computing
-the polynomial.  It might seem that such an example on natural numbers are not
-very practical, but it gets more prominent for more complex data structures.
-For example, the famous list equality on distributivity of \AF{map}s over
-\AF{\_∘\_}:
+the polynomial.  It might seem that such an example of rewriting expressions
+over natural numbers are not very practical, but the benefit becomes more
+obvious for more complex data structures.
+%
+For example, the famous fusion law for distributing \AF{map}s over
+function composition \AF{\_∘\_}:
 \begin{code}[hide]
   open import Data.List using (map)
 \end{code}
@@ -1145,6 +1260,7 @@ For example, the famous list equality on distributivity of \AF{map}s over
   map-∘ : ∀ {X Y Z : Set}{g : X → Y}{f : Y → Z} → ∀ xs → (map f ∘ map g) xs ≡ map (f ∘ g) xs
   map-∘ [] = refl
   map-∘ (x ∷ xs) = cong (_ ∷_) (map-∘ xs)
+  {-# REWRITE map-∘ #-}
 \end{code}
 tells us that we can save one list traversal.  Instead of traversing all the elements
 of \AB{xs} and then all the elements of the \AF{map} \AB{g} \AB{xs}, we can compute
@@ -1159,22 +1275,23 @@ systems we can selectively turn properties into optimisations.
 % cause an infinite sequence of rewrites.
 
 One danger with rewrite rules is that the order of rule application may
-lead to different results.  Recently introduced confluence checker~\cite{}
-helps to prevent this problem.  It can be
-turned on and it would report when the registered set of rewrite rules is not
+lead to different results.  The recently introduced confluence checker~\cite{}
+helps to prevent this problem.  When it is turned on, it will report
+when the registered set of rewrite rules is not
 confluent.  For example, in case of \AF{plus-0} rule, the confluence checker
 complains that
-\AF{plus} (\AC{suc} \AB{x}) \AS{zero} can be rewritten into two different
-ways: (\AC{suc} \AB{x}) and \AC{suc} (\AF{plus} \AB{x} \AS{zero}).  So if
-we add a new rewrite rule for \AF{plus} (\AC{suc} \AB{x}) \AS{zero} $\mapsto$
+\AF{plus} (\AC{suc} \AB{x}) \AC{zero} can be rewritten into two different
+ways: (\AC{suc} \AB{x}) and \AC{suc} (\AF{plus} \AB{x} \AC{zero}).  So if
+we add a new rewrite rule for \AF{plus} (\AC{suc} \AB{x}) \AC{zero} $\mapsto$
 \AC{suc} \AB{x}, our rewrite becomes confluent.
 
 The other known danger is that rewrite rules can lead to a never
 terminating sequence of rewrites.  While confluence does not guarantee
 termination, in combination with restriction that the left-hand-side
 of each rule that must be a constructor or a function applied to neutral terms,
-it helps to identify some non-termination.  For example it would not allow
-to register commutativity of addition as a rewrite rule.
+it helps to prevent some cases of non-termination.  For example, it keeps us
+from registering commutativity of addition as a rewrite rule, which would
+otherwise lead to non-termination.
 
 % In case of commutativity,
 % the confluence checker would complain that \AS{0} \AF{+} \AB{m} reduces
@@ -1182,68 +1299,6 @@ to register commutativity of addition as a rewrite rule.
 % require a rule \AB{m} $\mapsto$ \AB{m} \AF{+} \AC{zero}, but such a rewrite
 % is not allowed, as the left hand side is not a constructor/function application.
 % For more details on rewrite rules and their confluence checking refer to~\cite{}.
-
-\subsubsection{Telescopes}
-As rewriting is such a useful technique in the context of extraction, we
-ensure that it works as expected.  It turned out, that normalisation does
-not reduce inside of function clauses (and pattern-matching lambdas).
-Even with a registered \AF{plus-0} rewrite rule, the following function:
-\begin{code}
-  test-plus-0 : ℕ → ℕ
-  test-plus-0 a = a + 0
-\end{code}
-maintains addition with zero in the reflected code.  This is a technical
-limitation that has to do with the chosen internal represenation of the
-pattern-matching functions.  Fixing this on the Agda side is challenging,
-but we can explicitly normalise bodies of function clauses.  This requires
-constructing the context containing free variables used in the body of the
-given clause, which is non-trivial.  It is non-trivial because while there
-is no unique solution, the body of each clause used DeBruijn indices into
-a particular context.  Therefore, we would have to reverse engineer the
-internal algorithm of Agda.  Here is an example showing the contexts
-that we would need to compute for the function that is adding two vectors
-element-wise:
-\begin{code}
-  open import Data.Vec using (Vec; []; _∷_)
-  vadd : ∀ {n} → (a b : Vec ℕ n) → Vec ℕ n
-                                    -- type : (n: ℕ) (Vec ℕ v0) (Vec ℕ v1)
-  vadd {n} []       _        = []   -- cxt  : (Vec ℕ 0)
-                                    -- ctx  : (n: ℕ) (x: ℕ) (xs: Vec ℕ v0) (y: ℕ) (ys : Vec ℕ v3)
-  vadd {m} (x ∷ xs) (y ∷ ys) = x + y ∷ vadd xs ys
-\end{code}
-we use the \texttt{vi} notation for DeBruijn index \texttt{i}.  The first
-context contains the type for the second vector (underscore), but does not
-contain an entry for \AB{n}, as it is proven to be zero.  In the second context
-the binding \AB{m} does not correspond to the first element of the context,
-as it is proven that \AB{m} is \AC{suc} \AB{n}.
-
-Instead of trying to recomputing contexts we extend the reflection
-API to provide us the correct one.  This has been implemented in the
-pull request \url{https://github.com/agda/agda/pull/4722}.  Each clause
-of the function definition comes with an extra argument of type \AD{Telescope}:
-\begin{code}[hide]
-module TelMod where
-  open import Data.Product
-  open import Reflection using (Term; Type; Arg; Pattern)
-  open import Data.Nat as ℕ hiding (_≟_)
-\end{code}
-\begin{code}
-  Telescope = List (Σ String λ _ → Arg Type)
-  data Clause : Set where
-    clause        : (tel : Telescope) (ps : List (Arg Pattern)) (t : Term) → Clause
-    absurd-clause : (tel : Telescope) (ps : List (Arg Pattern)) → Clause
-\end{code}
-The telescope is the list of pairs where each pair contains the name
-and the type of a free variable.  When the definition is reflected the
-telescope is populated from within the internal representation of the
-term.
-
-As a result, we can straight-forwardly apply normalisation to the body
-of the given clause.  Given \AC{clause} \AB{ctx} \AB{pat} \AB{t}, we may
-run \AF{inContext} \AB{ctx} (\AF{normalise} \AB{t}), which solves the
-problem of rewrite rule propagation, and it is guaranteed that the context
-is correct.  Such a call is performed by \AF{kompile} function for every
-extracted function.
 
 
 \subsection{Monadic Workaround for Lets}
