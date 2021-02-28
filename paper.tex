@@ -248,31 +248,40 @@
 %% Note: \begin{abstract}...\end{abstract} environment must come
 %% before \maketitle command
 \begin{abstract}
-  Dependently-typed host languages empower users to verify a large number
-  of properties about the embedded languages and programs written in them.
-  The difficult choice is whether to use deep or shallow embedding.  The
-  latter is easier to use because the entire infrastructure of the host langauge is
-  immediately available.  The former gives a full control over the structure
-  of embedded programs, but is difficult to use in practice,
-  specifically when the embedded language is dependently typed.
-  The biggest insight that this paper builds on is that 
-  metaprogamming-capable host languages eliminate the distinction.
-  Shallow embeddings can use all the libraries and tools, yet
-  the structure of embedded programs can be accessed via reflection.
+  Dependently-typed host languages empower users to verify a wide
+  range of properties of embedded domain-specific languages and
+  programs written in them.  Designers of such an embedded language
+  are faced with a difficult choice between using a shallow or a deep
+  embedding.  A shallow embedding is easier to use because the entire
+  infrastructure of the host langauge is immediately
+  available. Meanwhile, a deep embedding gives full access to the
+  structure of embedded programs, but is difficult to use in practice,
+  especially when the embedded language is itself dependently typed.
 
-  This technique is applied in the context of theorem provers
-  and programming languages that are shallowly embedded in them.
-  Dependent types are used
-  to encode the properties of interest.  The main
-  focus of this work is to bring embedded programs and their
-  verified properties from theorem provers back into the original language,
-  so that the existing toolchain could be leveraged.
-  We demonstrate working implementation of
-  this technique in Agda by encoding three languages:
-  Kaleidoskope, SaC and a subset of APL, culminating in the implementation
-  and extraction of a convolutional neural network.
+  The main insight presented in this paper is that the choice between
+  shallow and deep embedding can be eliminated by working in a host
+  language with metaprogramming capabilities: we start from a shallow
+  embedding that can use all libraries and tools of the host language,
+  and later use reflection to expose the deep structure of the
+  embedded programs.
+  %
+  Concretely, we apply this technique to embed three low-level
+  programming languages -- Kaleidoscope, SaC, and (a subset of) APL --
+  into the dependently typed theorem prover Agda, using dependent
+  types to statically enforce several properties of interest.  We then
+  use Agda's reflection capabilities to extract the embedded programs
+  back into the original language, so that the existing toolchain can
+  be leveraged.
+  %
+  In this process, statically verified properties of the host language
+  are mapped onto runtime checks in the target language, allowing
+  extracted programs to interact safely with existing code.
+  %
+  Finally, we demonstrate the feasibility of our approach with the
+  implementation and extraction of a convolutional neural network in
+  our embedding of APL.
 
-%  Most practical programming languages of today prioriterise 
+%  Most practical programming languages of today prioriterise
 %  performance and usability over safety.  As a result, many
 %  useful correctness invariants cannot be expressed in the given
 %  language, typically due to weakness of the chosen type system.
