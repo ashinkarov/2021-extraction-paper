@@ -469,37 +469,37 @@ before we conclude in Section~\ref{sec:concl}
 %  and we can eliminate many subsequent checks if we use the prorgam as a building
 %  block of a larger project.  Assume we wnat to provide such formal guarnatees
 %  about some implementation --- how can we do this?
-%  
+%
 %  Unfortunately, most widely used programming languages of today are not equipped
 %  with such capabilities.  For example, in C or Python, there is no way to give
 %  a proof that a certain function never throws division by zero exceptions or
 %  that it always indexes arrays within bounds.  Type systems of these languages
 %  are to weak to support such invariants, as they exclusively focus on verifying
 %  data domains.
-%  
-%  % 
+%
+%  %
 %  % The more correctness guarantees a programming language provides, the more
 %  % difficult it is to use.  The reason is that a programmer has to do extra work
 %  % to establish and maintain program invariants of interest.  Unfortunately, such
 %  % extra work does not always pay off.  Correctness, at times, is orthogonal to
 %  % functionality: if the program does not crash, it does not mean that it searches
 %  % the given query on the internet.
-%  % 
+%  %
 %  % As nobody seem to know how to write an invariant ``returns a meaningful
 %  % response to a search query'', a lot of practical programming languages focus on
 %  % usability, providing only rudimentary means for expressing correctness invariants.
 %  % For example, C or Python are undoubtfully useful, but neither of the languages
 %  % makes it possible to guarantee lack of division by zero or in-bound array
 %  % indexing statically.
-%  % 
-%  
-%  
+%  %
+%
+%
 %  While we can imagine extending the given type system, it is unlikely to work
 %  well for an existing langauge.  Such an extension would touch on a very fundamental
 %  design decisions of the language and likely to generate enormous changes in the
 %  existing toolchains.  Adoption of such new features within the existing code
 %  is also unclear.
-%  
+%
 %  In this paper we are investigating a less invasive approach on stating program
 %  invariants that cannot be internalised in the given language.  We propose the
 %  following three steps:
@@ -510,12 +510,12 @@ before we conclude in Section~\ref{sec:concl}
 %          \item \emph{extract} the embedded program and verified properties back
 %                  into the original language.
 %  \end{enumerate}
-%  
-%  
+%
+%
 %  We briefly summarise the main challenges associated with each step.
-%  
+%
 %  \paragraph{Embedding}
-%  Encoding a target language within a host language is commonly referred as 
+%  Encoding a target language within a host language is commonly referred as
 %  \emph{embedding}.
 %  Two kinds of embeddings are commonly distinguished~\cite{}: deep and shallow.
 %  Deep embedding encodes the target language AST and usually offers evaluation
@@ -524,21 +524,21 @@ before we conclude in Section~\ref{sec:concl}
 %  construction gets a function of the host language.  As a result, we can encode
 %  target language programs in the host language, but we do not necessarily get
 %  a handle on the representation of these.  For more details refer to~\cite{}.
-%  
+%
 %  With deep embedding we have a full access to program representation, so it is
 %  much easier to transform/manipulate embedded programs.  However, the type system
 %  of the target language has to be encoded as well.  A number
 %  of examples~\cite{} show us how advanced type systems such as
-%  System-F~\cite{} or dependent types with families~\cite{} give rise to tagless 
+%  System-F~\cite{} or dependent types with families~\cite{} give rise to tagless
 %  interpreters~\cite{}, essentially allowing us to share the host type system for
 %  typechecking target programs.  While this works beautifully for target languages with
 %  simple type systems, the embedding gets quite ugly~\cite{} when the target type
 %  system is dependently typed.  Impressive efforts have been taken~\cite{} to show
 %  that the encoding is possible, but it is far from being practical.
-%  
+%
 %  In this work we consider shallow embedding only and we use Agda~\cite{} as our
 %  host language.
-%  
+%
 %  \paragraph{Verifying} In the proposed system, dependent types play the key role
 %  when it comes to verification.  First, we expect that all properties/invariants
 %  about target programs are presented to the system as dependent types.  Note that
@@ -546,7 +546,7 @@ before we conclude in Section~\ref{sec:concl}
 %  typed system do not necessarily automate this step.  However, they do provide a
 %  way to write the proof down, which in systems like Agda is not different from
 %  writing a regular program~\cite{}.
-%  
+%
 %  Sometimes extrinsic verification~\cite{} of the target programs might be
 %  insufficient, and we would have to use intrinsic approaches, \ie{} to interleave
 %  the actual data and its constraints.  For example, ensuring that the function
@@ -556,7 +556,7 @@ before we conclude in Section~\ref{sec:concl}
 %  it is important to ensure that our embedded language supports the notion of
 %  dependent types.  Once again, that is where using shallow embedding helps
 %  significantly.
-%  
+%
 %  \paragraph{Extracting}
 %  One of the difficulties with the steps proposed so far lies in the inability
 %  to use the verified target program outside of the theorem prover.  The key
@@ -567,7 +567,7 @@ before we conclude in Section~\ref{sec:concl}
 %  it possible to obtain data representation of any given Agda term.  Esentially,
 %  extraction process can be seen as a translation of one term representation
 %  into another.
-%  
+%
 %  Specifying extraction of Agda terms in Agda offers a number of advantages.  First,
 %  lack of external dependencies and full access to the extraction process.  Typically,
 %  in classical compilers, backends are integral parts of the compiler, and while adding
@@ -583,10 +583,10 @@ before we conclude in Section~\ref{sec:concl}
 %  rule.  By turning this into a rewriting rule, double reverses would be eliminated
 %  from the terms prior extraction, resulting in a potentially better performing
 %  target programs.
-%  % TODO mention about turning proofs itno user-defined constraint or assertions 
+%  % TODO mention about turning proofs itno user-defined constraint or assertions
 %  %      depending on the capabilities of the backend language.
-%  
-%  
+%
+%
 %  \paragraph{Applications} We demonstrate the propsed approach on two languages:
 %  Kaleidoskope~\cite{} and SaC~\cite{}.  The former is a minimalist langauge
 %  that is ofetn used as an example when creating LLVM~\cite{} backends.  We follow
@@ -601,8 +601,8 @@ before we conclude in Section~\ref{sec:concl}
 %  of the builtin operators is quite complex.  The main focus of the encoding is that
 %  we define all the APL operators in terms of embeeded SaC operators, effectively
 %  obtaining a compiler from a subset of APL to executable binaries.
-%  
-%  
+%
+%
 %  \paragraph{Key Contributions}
 %  The key contributions of this paper are:
 %  \begin{itemize}
@@ -618,7 +618,7 @@ before we conclude in Section~\ref{sec:concl}
 %              in APL.  We port the implementation into our system and ensure that
 %              it extracts correctly.
 %  \end{itemize}
-%  
+%
 %  The rest of the paper is organised as follows:
 %  \todo[inline]{FIXME}
 
