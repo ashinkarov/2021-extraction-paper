@@ -311,11 +311,9 @@ about strings, pairs or universes, and hence can be extracted safely.
 
 Such a simplification can be conveniently achieved by
 normalising the terms, i.e.~by applying reduction rules to (sub)terms until
-they turn into values or neutral terms. The first step of extraction is
-normalisation of the term and its type
+they turn into values or neutral terms.
 %
-
-\subsubsection{Telescopes}
+%\subsubsection{Telescopes}
 Agda's reflection API offers a function \AF{normalise} for normalizing a term.
 However, this will only normalize the term itself and not the body of
 functions used in this term.
@@ -383,9 +381,7 @@ definition.
 
 As a result, we can straight-forwardly apply normalisation to the body
 of the given clause.  Given \AC{clause} \AB{ctx} \AB{pat} \AB{t}, we may
-run \AF{inContext} \AB{ctx} (\AF{normalise} \AB{t}), which solves the
-problem of rewrite rule propagation, and it is guaranteed that the context
-is correct.
+run \AF{inContext} \AB{ctx} (\AF{normalise} \AB{t}) to normalise the body.
 %Such a call is performed by \AF{kompile} function for every
 %extracted function.
 
@@ -887,7 +883,7 @@ module ClPats where
 %
 The function take four arguments:
 the telescope mapping variables used in the pattern list to their names
-and types (see Section~\ref{sec:rewriting} for details on telescopes);
+and types;
 the list of patterns; the list of expressions that are being matched
 by the patterns; and the state record \AD{PatSt}. When compiling a clause,
 the list of expressions is initialised with the function arguments. The state record
