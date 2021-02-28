@@ -17,7 +17,9 @@ side-effecting expressions, undefined behaviour, pointers, and
 other imperative constructions of C.  This allows the compiler
 to use implicit memory management and to make decisions about
 parallel execution of certain code parts without requiring
-any explicit annotations.  We introduce the key aspects of
+any explicit annotations.  The current compiler \texttt{sac2c}
+supports efficient~\cite{} compilation to multicore and GPU
+architectures.  We introduce the key aspects of
 the language that will be used in extraction examples.  For
 more information about SaC refer to~\cite{GrelSchoIJPP06,sactut}.
 
@@ -100,14 +102,14 @@ map/reduce construct.  Consider an example of matrix multiplication:
       ([0,0] <= [i,j] < [M,N]): sum (with {
          ([0] <= [k] < [K]): a[[i,k]]*b[[k,j]];
       }: fold (+, 0);
-    }: genarray ([m,n], 0);
+    }: genarray ([M,N], 0);
   }
 \end{lstlisting}
 First, we obtain the number of rows and columns in the matrices by
 querying their shape (which is a 1-dimensional array) and selecting
 its corresponding components.  The outer with-loop specifies
-the index range from $[0,0]$ up to $[m,n]$ and tells that all the
-computed values should be put into the array of shape $m\times n$.
+the index range from $[0,0]$ up to $[M,N]$ and tells that all the
+computed values should be put into the array of shape $M\times N$.
 The latter is specified with \texttt{genarray} at the end of the
 with-loop, where the first argument is the shape of the result,
 and the second one is the default element.  The default element servers
@@ -147,7 +149,7 @@ In order to embed SaC, we have to define the type for multi-dimensional
 arrays, and three constructs: with-loop, shape, and selection.  Our goal
 is to specify them such that we can express non-trivial shape relations
 between the arguments of a function and to ensure in-bound array indexing
-statically.  Surprisingly, this can be achieved with the following types:
+statically.  We achieve this with the following types:
 \begin{code}
   data Ix : (d : ℕ) → (s : Vec ℕ d) → Set where
     []   : Ix 0 []
@@ -177,7 +179,8 @@ have to use a conditional within the \AC{imap} function.  While this might
 have an impact on performance in some cases, it is significantly easier to
 prove properties about \AC{imap}s than with-loops.  Also, almost all
 our examples use the entire index space.  As for the \texttt{fold}
-\texttt{with}-loop, we do not need a special construct.  We can define
+\texttt{with}-loop, there is no need for a special construct as well.
+We can define
 a recursive function (analogous to reduce on \AD{Vec}) and extract
 its application into the fold \texttt{fold} \texttt{with}-loop.
 
@@ -236,7 +239,7 @@ module ExFuse where
 Here we defined \AF{\_+\_} and \AF{\_*\_} as element-wise operations
 on the array elements.  The \AF{\_ᵀ} is a transpose.  Note that all
 of these are defined in a rank-polymorphic style.  With transpose
-we had to apply a proof (\AF{reverseinv}) that reverse of an
+we had to apply a proof (\AF{reverse-inv}) that reverse of an
 index is involutive.  The body of \AF{ex} is given as four
 operations on the entire arrays, conceptually creating a new copy
 of an array at every application.  Due to our encoding, the
@@ -245,7 +248,7 @@ the body of \AF{ex} normalises into a single \AC{imap}.
 This is largely possible because we defined \AD{Ar} as a record,
 and these are guaranteed to preserve $\eta$-equality.  That is,
 every \AB{x} : \AD{Ar} \AB{d} \AB{s} is \emph{definitionaly} equal
-to \AC{imap} (\AF{sel} x).  However, there is an unfortunate consequence.
+to \AC{imap} (\AR{sel} x).  However, there is an unfortunate consequence.
 
 As we extract \AC{imap} into a \texttt{genarray} with-loop, we have
 to supply the shape of the resulting array.  In our encoding, this is
@@ -273,7 +276,7 @@ the following function and its reflected body:
 the type-level arguments that we need are erased, as they can be
 found in the type.  They are present in the type signature, and
 in principle they could be inferred.  However, this far from
-trivial as \AC{imap} may appear in arbitrary context.  Therefore
+trivial as \AC{imap} may appear in arbitrary contexts.  Therefore,
 we would have to implement local type inference for an arbitrary
 Agda term.
 
@@ -316,7 +319,7 @@ is no way to construct the following types:
 \begin{lstlisting}
   (int[.])[5]       (int[.])[.]     (int[*])[.]    (int[*])[*]
 \end{lstlisting}
-Furthermore, syntactically, there is no way to express a homogeneously
+Furthermore, syntactically, there is no way to express a
 nested array type.  However, one can deal with homogeneous nesting in
 the following way.  Any homogeneous nesting can be flattened as follows:
 \begin{lstlisting}
@@ -385,9 +388,10 @@ int[.] cons (int x, int[.] xs) {          int[.] tl (int[.] xs) {
   }: genarray (1 + shape (xs));           
 }                                         int hd (int[.] xs) { retunr xs[0]; }    
 \end{lstlisting}
-Finally, we notice that if can extract \AD{Vec}s, we can extract
-\AD{List}s into exactly the same operations.  The difference would
-be in the analysis of the nesting in the type.  \AD{Ar} of \AD{Vec}
+Finally, we notice that if we can extract \AD{Vec}s, we can extract
+\AD{List}s into exactly the same target language constructs.
+The difference would
+be in the analysis of the nesting of the type.  \AD{Ar} of \AD{Vec}
 and \AD{Vec} of \AD{Ar} are always homogeneous as long as the leaf
 element is some base type like \AD{ℕ}.  \AD{List}s of base types
 or lists of homogeneous arrays are also homogeneous.  However, whenever
@@ -407,7 +411,7 @@ in the extractor, therefore allowing for the combination of nested
 % \end{lstlisting}
 
 
-\subsection{Exaample}
+\subsection{Example}
 
 \todo[inline]{I'll explain the APL part first and then come back
   and see how much space I'll have for an example.  We are pretty
