@@ -260,7 +260,7 @@
 
   The main insight presented in this paper is that the choice between
   shallow and deep embedding can be eliminated by working in a host
-  language with metaprogramming capabilities: we start from a shallow
+  language with reflection capabilities: we start from a shallow
   embedding that can use all libraries and tools of the host language,
   and later use reflection to expose the deep structure of the
   embedded programs.
@@ -340,32 +340,40 @@
 \section{Introduction}
 
 Dependently-typed systems such as Coq~\cite{}, Agda~\cite{}, Lean~\cite{}
-or Idris~\cite{} make it possible to implement verified specifications
-of the given problem.  Specifications can be executed
-within the type checker, or translated into
-general-purpose target languages.  However, it is problematic to
-leverage specific tools or languages that are not supported by the
-existing backends.
+or Idris~\cite{} make it possible to write down specifications
+of programs as types and check that programs satisfy those specification
+during type checking. These verified programs can be either executed
+directly, or translated into
+general-purpose target languages.  However, if a specific tools or language
+is not supported by the existing backends, we are stuck.
 
-There are two common approaches to this problem: i) extend the
-toolchain; ii) define an embedded language and implement the specification
-in it.  The former gives at most freedom but it may be technically
-challenging, as one has to interact with the actual internals of a
-theorem prover.  The latter is know to be possible~\cite{}, but
-the resulting encodings get rather impractical when the embedded
-language is dependently-typed.
+There are two common approaches to this problem: i) extending the
+toolchain to produce code in the desired target (the \emph{shallowly
+embedded} approach); or ii) defining a syntactic representation of the
+target language and implement the program in it (the \emph{deeply
+embedded} approach). A shallow embedding gives the most freedom but it
+may be technically challenging, as one has to modify the internals of
+the host language itself.  A deep embedding requires less work
+up-front, but the resulting encodings get rather impractical the
+larger they get, especially when the embedded language is itself
+dependently typed.
 
-In this paper we would like to seriously consider an approach that
-uses metaprogramming to define custom extractors, making it possible
-to write a verified program hand-in-hand with an executor for it ---
-all within a single environment.  No need to touch internals
-of the host language; no encoding artefacts.
+In this paper we consider an approach that combines the benefits of
+shallow and deep embeddings. Our approach relies on \emph{compile-time
+metaprogramming} to define custom extractors, making it possible to
+write a verified program hand-in-hand with an executor for it --- all
+within a single environment.  No need to touch internals of the host
+language; no encoding artefacts.
 % Verified programming turns into Embed-Typecheck-Extract Loop.
 
-Recently, many dependently-typed systems introduced~\cite{idris-refl,
-lean-refl,metacoq,agda-refl} reflections
-mechanism in a Lisp (or \emph{direct reflection}~\cite{nuprl-refl})
-style.  That is, the language has \texttt{quote}/\texttt{unquote}
+Recently, many dependently typed systems started supporting
+\emph{reflection}~\cite{idris-refl, lean-refl,metacoq,agda-refl} (also
+known as \emph{direct reflection}~\cite{nuprl-refl}), a form of
+compile-time metaprogramming\footnote{This use of the word
+`reflection' is not to be confused with reflection in Java and similar
+languages, which is a form of \emph{runtime metaprogramming}.}.
+%
+That is, the language has \texttt{quote}/\texttt{unquote}
 primitives that translate expressions to their internal representation
 and back.  The internal representation is regular data that can be
 accessed and manipulated as usual.  The main intention of
@@ -374,47 +382,60 @@ boilerplate code, \eg{} tactics.  However, existing APIs are
 typically complete enough to be used for general
 code generation tasks such as writing custom compiler backends.
 
-The usecase we consider in this paper is slightly different.
+The use-case we consider in this paper is slightly different.
 %Instead writing a full backend for the entire dependently-typed langauge,
-We are interested in verified implementations that shall be used
-in the context of an existing language.  We want to solve this
-problem by using Embed-Typecheck-Extract Loop.  That is, we embed
-a language or its subset in a theorem prover; we use dependent types
-to encode the properties; we use typechecking to verify the properties;
-and we use custom extractors to bring our implementation into the
-target language.  The important point is that we work
-on a fine-grain level.  Embeddings (and consequently extractors) do
-not have to cover the entire language, only the subset that is
-sufficient to specify the problem of interest.  Also, instead of
-implementing the entire application in a theorem prover, one might chose
-a particular fragment.
+We are interested in writing verified implementations that can be used
+in the context of an existing language.  We approach this problem by
+using an embed-typecheck-extract loop.  That is, we first embed a
+language or a subset of it into a theorem prover, using dependent
+types to encode properties of interest; next we use the typechecker of
+the host language to verify the properties; and finally we use a
+custom extractor to translate our implementation to the target
+language.
+%
+An important point is that our approach is fine-grained: embeddings
+(and consequently extractors) do not have to cover the entire
+language, only the subset that is sufficient to specify the problem of
+interest.  Also, instead of implementing the entire application in a
+theorem prover, one might chose a particular fragment and integrate it
+into an existing codebase.
 
-The proposed approach has several advantages.  Firstly, it is much easier
-to work with shallow embeddings rather than with deep ones.  While deep
-embeddings provide full access to the program representation, we have
-to encode type system of the target language.  A number of examples~\cite{}
-show how advanced type systems such as System-F~\cite{} or dependent
-types with families~\cite{} can be leveraged to share the host type
-system for typechecking target programs.  This works beautifully for
-target languages with simple type systems, but the embedding gets
-impractically ugly~\cite{} in case of dependently typed ones.  This
-matters because we use dependent types in the embedding to encode the
-properties of interest.  Shallow embeddings do not require any additional
-encoding.  Embedded programs are regular programs in the host language,
-making all the libraries and tools immediately available.
+Our proposed approach has several advantages:
+\begin{itemize}
+  \item Firstly, working with a shallow embedding is much easier than
+  working with a deep one.  While deep embeddings provide full access
+  to the program representation, they require us to encode the full
+  syntax and typing rules of the target language.  A number of
+  examples~\cite{} show how advanced type systems such as
+  System-F~\cite{} or dependent types with families~\cite{} can be
+  leveraged to share the host type system for typechecking target
+  programs.  This works beautifully for target languages with simple
+  type systems, but the embedding gets impractically ugly~\cite{} in
+  case of dependently typed ones.  This matters because we use
+  dependent types in the embedding to encode the properties of
+  interest.  Shallow embeddings do not require any additional
+  encoding, since they are regular programs in the host language, and
+  can make use of all available libraries and tools.
 
-Secondly, specifying embeddings and extractions in the same dependently-typed
-framework offers a number of advantages.  We do not have to rebuild the
-theorem prover each time we modify the extractor.  Extractors can be
-fine-tuned for the particular application, \eg{} treating a chosen function
-in a specific way.  Extractors can make full use of dependent types,
-ensuring that the extraction process is sound.  In case of Agda,
-extractors play very nicely together with the rewriting rules.  The latter
-makes it possible to turn equalities into computation rules.  For example,
-we can prove that list revresals are involutive and register this as a
-rewrite rule.  As a result any double reverses will be eliminated prior
-the extraction, resulting in better performing programs.
+  \item Secondly, specifying embeddings and extractions in the same
+  dependently-typed framework means we can modify the extractor
+  without rebuilding the whole compiler of the host language.
+  Extractors can be fine-tuned for the particular application, \eg{}
+  treating a chosen function in a specific way.  Extractors can make
+  full use of dependent types, ensuring that the extraction process is
+  sound.
 
+  \item Finally, since the embedded program and the extractor are
+  developed side-by-side, we can make use of features of the host
+  language to customize the behaviour of the extractor
+  further. Concretely, we use Agda's \emph{rewrite rules} as a
+  lightweight method of applying verified domain-specific
+  optimizations during extraction.  This allows us for example to
+  prove that list reversals are involutive and register this as a
+  rewrite rule.  As a result any double reverses will be eliminated
+  prior the extraction, resulting in better performance of the
+  extracted code.
+\end{itemize}
 
 We implement extractors for Kaleidoskope~\cite{kaleidoscope}
 and SaC~\cite{sac} in Agda.
@@ -422,13 +443,14 @@ The former is a minimalist langauge that we use to demonstrate the basic
 extraction principles.  The latter is a high-performance
 array language that can generate efficient code for various architectures, but
 it has a restrictive type system.  Our SaC embedding guarantees
-program termination, in-bound array indexing, safe arithmetics.
-Finally, we embed a small subset of APL~\cite{} that is
-sufficient to encode a Convolutional Neural Network~\cite{cnninapl}.
-Embedding APL is difficult because the language is untyped, and its
-basic operators are heavily overloaded.  We define all the basic
-operators in terms of the SaC embedding, effectively obtaining a
-compiler from APL into executable binaries.
+program termination, in-bound array indexing, and safety of arithmetic operations.
+%
+Finally, we also embed a small subset of APL~\cite{} into Agda, which
+is sufficient to encode a Convolutional Neural
+Network~\cite{cnninapl}.  Embedding APL is difficult because the
+language is untyped, and its basic operators are heavily overloaded.
+We define all the basic operators of APL in terms of the SaC embedding,
+effectively obtaining a compiler from APL into executable binaries.
 
 \paragraph{Contributions}
 The key contributions of this paper are:
@@ -436,10 +458,12 @@ The key contributions of this paper are:
     \item We introduce the concept of reflection-based extractors
             for shallowly-embedded languages that are embedded
             in metaprogramming-capable theorem provers.
-    \item We extend the reflection API of Agda to accommodate
-      the needs of a first-order array language.  We add
-            the notions of: telescopes, selective reduction,
-            and parameter reconstruction.
+    \item We make several extensions to the reflection API of
+            Agda to make it better suited for our goal of defining
+            custom extractors. Specifically, we extend the clause
+            syntax with telescopes, we add new operations for
+            selective reduction, and allow for optional reconstruction
+            of datatype parameters.
     \item We implement extractors for two languages: Kaleidoscope
             and SaC.  We use the latter as a basis for embedding
             a subset of APL.
@@ -456,7 +480,7 @@ our treatment of multi-dimensional arrays and specifics of their
 extraction.  In Section~\ref{sec:apl} we explain a few difficulties
 one may find when embedding real-world languages with sophisticated
 semantics.  We discuss related work in Section~\ref{sec:related}
-before we conclude in Section~\ref{sec:concl}
+before we conclude in Section~\ref{sec:concl}.
 
 
 
