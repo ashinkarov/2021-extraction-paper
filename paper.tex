@@ -72,8 +72,11 @@
 
 
 \newcommand*{\aplfont}{\defaultfontfeatures{Scale=MatchLowercase}%
-\setmonofont[Color={0019D4}]{DejaVu Sans Mono}}
+    \setmonofont[Color={0019D4}]{DejaVu Sans Mono}}
 \newcommand{\apl}[1]{{\aplfont\texttt{#1}}}
+
+%\newfontfamily{djvufont}{DejaVu Sans Mono}
+\newfontfamily\consolas{DejaVu Sans Mono}
 
 \usepackage{mathpartir}
 
@@ -83,6 +86,8 @@
 
 \usepackage{agda}
 \usepackage{newunicodechar}
+\usepackage[final]{listings}
+
 \newunicodechar{∷}{::}
 \newunicodechar{→}{\ensuremath{\to}}
 \newunicodechar{ω}{\ensuremath{\omega}}
@@ -97,7 +102,7 @@
 \newunicodechar{▹}{\ensuremath{\triangleright}}
 \newunicodechar{∸}{\ensuremath{\dot{-}}}
 \newunicodechar{⊛}{\ensuremath{\circledast}}
-
+\newunicodechar{ᵀ}{\ensuremath{{}^{\text{T}}}}
 
 
 % Some shortcut commands for agda symbols
@@ -128,6 +133,44 @@
 %     \equal{#1}{≡⟨⟩} \OR
 %     \equal{#1}{∎}
 %   }{\ }{}#2}
+
+\definecolor{xgray}{rgb}{0.5,0.5,0.5}
+\definecolor{xblue}{rgb}{0.9,0.1,0.1}
+\usepackage[final]{listings}
+\newcommand{\codesize}{\fontsize{7}{8}\selectfont}
+\newcommand{\numsize}{\fontsize{5}{5}\selectfont}
+
+\newlength{\codeindent}
+\setlength{\codeindent}{0pt}%2\parindent}
+
+\lstdefinelanguage{sac}{morekeywords={with,fold,genarray,modarray,bool}}
+\lstset{% general command to set parameter(s)
+    numberstyle=none, %\numsize\color{xgray},
+    basicstyle=\ttfamily, %\codesize\ttfamily,          % print whole listing small
+    %keywordstyle=\color{black}\bfseries,
+                                % underlined bold black keywords
+    identifierstyle=,           % nothing happens
+    stringstyle=\ttfamily,      % typewriter type for strings
+    showstringspaces=false,
+    language=C,
+    alsolanguage=sac,
+    %morekeywords={SHRAY_id_t,size_t},
+    %numbers=left,
+    %stepnumber=2,
+    %numbersep=3pt,
+    captionpos=b,
+    xleftmargin=\codeindent,
+    %keepspaces=true,
+    %columns=fixed,
+    columns=fullflexible,keepspaces,
+    inputencoding=utf8,
+    texcl=true,
+    mathescape
+    %xrightmargin=2em,
+    %frame=lines
+}
+ \newcommand{\sac}{\textsc{SaC}}
+
 
 
 \begin{document}
