@@ -45,14 +45,16 @@ and \AC{suc}.  \AD{Fin} is an indexed type, where the index is of type
 coincide.  They are disambiguated from the type context, or they can be
 prefixed with the type name: \AC{ℕ.zero}, \AC{ℕ.suc}.  In \AD{Fin} definiton,
 \AS{∀} binds the variable name without the need to specify type.  The
-arguments inside braces are called hidden, meaning that they can be leaved
+arguments inside braces are called hidden arguments, meaning that they can be left
 out at function applications: we write \AC{suc} \AC{zero}, assuming
-that there is enough typing information.  Hidden arguments can be passed
-explicitly as follows: \AC{zero} \{\AB{n} \AS{=} \AB{x}\}.
+that the typing context allows Agda to infer a (unique) value for the hidden argument.
+Hidden arguments can be passed
+explicitly using the syntax $\AC{zero} \{\AB{n} = \AB{x}\}$.
 The \AD{Fin} \AB{n} type represents natural
-numbers that are bound by \AB{n}.  The propositional equality \AF{\_≡\_} type
-is a relation of two arguments, and it has a single constructor.  It uses the
-mix-fix syntax~\cite{}, meaning that the underscores in the name indicate
+numbers that are bounded by \AB{n}.  The propositional equality \AF{\_≡\_} type
+is a relation on two arguments, and it has a single constructor \AC{refl}
+stating that any value \AB{x} is equal to itself.  It uses the
+mix-fix syntax~\cite{}: the underscores in the name indicate
 placeholders for the arguments.  \AF{Set} is the name of the type of all
 small types.  Sets form a predicative hierarchy, meaning that \AF{Set} \AB{i}
 is of type \AF{Set} (\AC{suc} \AB{i}), and \AF{Set} is a synonym for
@@ -91,22 +93,23 @@ in order as they appear.
 \end{mathpar}
 The definition of \AF{abs} uses the \emph{absurd pattern}.
 The () symbol indicates an impossible case for the first argument,
-\ie{} there is no constructor(-s) leading to \AD{Fin} \AC{zero}.
-Absurd patterns do not have body, as anything can be deduced from
-falsehood.  In the definition of \AF{wth} we demonstrate the use
+\ie{} there is no constructor constructing a term of type \AD{Fin} \AC{zero}.
+Absurd patterns do not have a body, as the type system guarantees that they
+are never called at run-time.  In the definition of \AF{wth} we demonstrate the use
 of the \AK{with} construction~\cite{} which makes it possible to
-match local expressions similarly to function arguments.
+match on the result of an expression locally.
 
 % \todo[inline]{Amongst other things we need to explain with-clauses
 %   and pattern-matching functions.  Maybe records and their eta-equality.
-% 
+%
 %   Nat, Fin, Vec, Eq, with, patterns, hidden values, mixfix}
 
 \subsection{Reflection}
-Instead of specifying exact structure of all the types that are being
-used to encode reflected terms, we consider a small but representative
-example: the function \AF{foo} and its reflection.  The term on the right
-is built entirely out of constructors.  We annotate each constructor with
+Instead of specifying the full structure of all types that Agda uses
+to encode reflected syntax, we consider a small but representative
+sample: the function \AF{foo} and its reflection. On the left you see the
+definition of \AF{foo}, and on the right its reflected syntax, which is
+built entirely out of constructors.  Each constructor is annotated with
 the name of the type it belongs to, \ie{} instead of \AC{zero} we write
 \AC{ℕ.zero}.
 \begin{code}[hide]
@@ -119,7 +122,7 @@ module FunExample where
   open import Data.Unit
   open import Data.Product
   open import Function
-  
+
 \end{code}
 \begin{mathpar}
 \codeblock{
@@ -146,54 +149,59 @@ module FunExample where
 }
 \end{mathpar}
 The function is defined by the list of clauses \AC{Clause.clause}.  Each
-clause has three arguments: i) the telescope which is a list of free variables
-and their types; ii) the list of patterns; iii) the body of the
+clause has three arguments: i) the telescope, which is a list of free variables
+and their types; ii) the list of patterns; and iii) the body of the
 clause.  The first clause does not have free variables, so the telescope
-is empty.  In the second clause we have one variable called \AB{x}.  The
+is empty. The second clause has one variable called \AB{x}.  The
 pattern list in the first clause has one argument;  \AC{vArg} denotes that
-it is visible argument. We would use \AC{hArg} for hidden arguments.
+it is visible argument (\AC{hArg} is used for hidden arguments).
 The actual pattern matches against the \AC{zero} constructor.  This is expressed
-with \AC{Pattern.con} which hsa two arguments: reflected constructor name and the
+with \AC{Pattern.con} which has two arguments: the reflected constructor name and the
 list of reflected arguments.  The number of reflected arguments must be the
 same as the number of the actual arguments.  As \AC{zero} has no arguments,
-we pass empty list to \AC{Pattern.con}.   The \AK{quote} function returns the
-name of type \AD{Name} for the given Agda definition or constructor.
-Variables inside of patterns and terms are given as de Bruijn indices
-into the corresponding telescope.  That is, in the second clause the
-reference to \AS{x} is the de Bruijn index zero.  Note that we write
+we pass empty list to \AC{Pattern.con}.   The \AK{quote} function returns
+a representation of the name for the given Agda definition or constructor,
+which is of type \AD{Name}.
+%
+Variables (both in patterns and in terms) are given as de Bruijn indices
+into the telescope of the clause.  That is, in the second clause the
+de Bruijn index \AN{0} refers to the variable \AS{x}.  Note that we write
 \AN{0} instead of \AC{zero}, as numbers are expanded
 into their corresponding \AC{zero}/\AC{suc} representations.
 
 
-
-
-Metaprogramming within the
-dependently-typed system is challenging because there is a significant
-gap between the surface and core languages.  Many constructs such as
-implicit arguments, instances, \AK{let} and \AK{with} definitions
+Effectively using Agda's reflection API can be challenging because the
+syntax it uses provides a representation of the \emph{internal}
+representation of Agda terms, which differs significantly from the
+surface syntax.
+%
+Many constructs such as
+implicit arguments, instance arguments, \AK{let} and \AK{with} definitions
 exist only in the surface language.  Translation from the surface
 language is performed by the \emph{elaborator}.  As types may depend
-on the values, elaboration involves computing normal forms which may
-reveal new information about the terms.  For example, if the function
+on the values, elaboration involves evaluation of expressions.
+%
+For example, if the function
 {
 \begin{code}[inline]
-  f : {x : Bool} (n : ℕ) → if x then ℕ else Fin n
+  f : (x : Bool) → if x then ℕ else Bool
 \end{code}
 \begin{code}[hide]
   f = ⋯
 \end{code}
-} is applied in the context where the value of \AB{x} is known,
-the type of the function application will change.  As we want
-reflected code to be type
-safe, we have to pass this changing information to metaprograms.
-That is why Agda's reflection API, following
-Idris~\cite{idris-refl} design, exposes elaboration context
-to the language.
+}
+%
+is applied to the value \AC{true}, the type of the result will compute
+to \AF{ℕ}. Following the approach of \emph{elaborator reflection}
+introduced by Idris~\cite{idris-refl}, Agda exposes many parts
+of the elaborator to the reflection API, including reduction
+and normalisation of expressions.
+%
+These operations are made availabe through the \AD{TC} monad, which
+takes care of managing the current context of the elaborator.
 
-All the metaprogramming operations are happening within the
-\AD{TC} monad, so that the elaboration context could be properly
-shared.  The key metaprogramming primitives are \AK{quote} and
-\AK{unquote} operating as follows.
+The key metaprogramming primitives are \AK{quote} and
+\AK{unquote}, which operate as follows:
 \begin{mathpar}
 \codeblock{
 \begin{code}
@@ -216,33 +224,37 @@ shared.  The key metaprogramming primitives are \AK{quote} and
 \end{code}
 }
 \end{mathpar}
-In \AF{ex}, the \AK{unquote} occurs in the \AC{true} clause of the function.
-In this case the return type of the function normalises to \AD{ℕ}.
-Therefore, the type of \AK{unquote} \AF{helper} must be \AB{ℕ} as well.
-The argument to \AK{unquote} is expected to be a function of type \AD{Term} \AS{→}
-\AD{TC} \AD{⊤}, where \AD{⊤} is the unit type.  Then the typechecking proceeds
-as follows.  We create a metavariable \AB{hole} of type \AD{ℕ}; we quote it and
-pass it to \AF{helper}.  Within the \AF{helper}, we assume that the
-metavariable will be instantiated, and we replace the \AK{unquote} \AF{helper}
-expression with \AB{hole}.  Instantiation in \AF{helper} is achieved by
-the call to \AF{unify}.  This is one of the reflection API functions that
-unifies two terms and solves the metavariables in the process.
-Overall, the effect of \AK{unquote} \AF{helper} is identical to
-just writing \AN{42}.  However, the expression inside the \AF{helper}
-can be arbitrarily complex.
+%
+In \AF{ex}, the \AK{unquote} occurs in the \AC{true} clause of the
+function.  In this case the return type of the function normalises to
+\AD{ℕ}.  Therefore, the type of \AK{unquote} \AF{helper} must be
+\AB{ℕ} as well.  The argument to \AK{unquote} is expected to be a
+function of type \AD{Term} → \AD{TC} \AD{⊤}, where \AD{⊤} is the unit
+type.  Then the typechecking proceeds as follows.  Agda creates a
+metavariable \AB{h} of type \AD{ℕ}; quotes it and passes it to the
+function \AF{helper}. In the body of \AF{helper}, we call the \AF{TC}
+operation \AF{unify} \AB{h} (\AC{lit} (\AC{nat} \AN{42})), which will
+unify the two given expressions and instantiate the metavariable
+\AB{h} to the value 42 in the process.  Finally, Agda replaces the
+expression \AK{unquote} \AF{helper} expression with the instantiated
+value of \AB{h}.  Overall, the effect of \AK{unquote} \AF{helper} is
+identical to just writing \AN{42}.  However, the expression inside the
+\AF{helper} can be arbitrarily complex and can depend on the syntactic
+structure of the term \AB{h} as well as information obtained through
+operations in the \AF{TC} monad.
 
 Instead of quoting/unquoting explicitly, we can use the \AK{macro}
-keyword to wrap any function with return type \AD{Term} \AS{→}
+keyword to wrap any function with return type \AD{Term} →
 \AD{TC} \AD{⊤}.  This takes care of quoting the arguments and unquoting
-results.  On the right, we demonstrate how it can be used: \AF{getDef}
+the result.  On the right, we demonstrate how it can be used: \AF{getDef}
 obtains the definition from the name.  The macro calls three functions
 from the reflection API.  Firstly, \AF{getDefinition} obtains the definition
 of the object with the name \AB{n}.  Secondly, \AF{quoteTC} quotes the
-previously obtained definition (we get doubly-quoted definition).
+previously obtained definition (resulting in a doubly-quoted expression).
 Finally, we \AF{unify} the quoted hole and the doubly quoted definition,
 so that after unquoting we get the reflected definition (and not the
 original one).  We apply the macro in the last line, and as can be seen,
-no quote/unquote is needed.
+no \AK{quote}/\AK{unquote} is needed.
 
 There are many other functions in the reflection API that are not essential
 for the purposes of this paper.  However, all the details can be found
@@ -265,7 +277,7 @@ in the Reflection section of Agda's manual~\cite{agda}.
 %   data Term : Set
 %   Type = Term
 % \end{code}
-% 
+%
 % The actual innternal data representation is very compact:
 % \begin{code}
 %   data Term where
@@ -279,7 +291,7 @@ in the Reflection section of Agda's manual~\cite{agda}.
 %     lit       : (l : Literal) → Term
 %     meta      : (x : Meta) → List (Arg Term) → Term
 %     unknown   : Term
-% 
+%
 %   data Definition : Set where
 %     function    : (cs : List Clause) → Definition
 %     data-type   : (pars : ℕ) (cs : List Name) → Definition
