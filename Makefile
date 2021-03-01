@@ -19,7 +19,7 @@ paper.tex : latex/background.tex latex/kaleidoskope.tex latex/arraylang.tex \
 	    latex/aplcnn.tex latex/related.tex
 
 latex/%.tex : %.lagda
-	$(AGDA) --latex $< #--only-scope-checking $<
+	$(AGDA) -i. -l agda-arrays --latex $< #--only-scope-checking $<
 
 paper.pdf: $(SRC)
 	TEXINPUTS=./latex:$$TEXINPUTS latexmk -pdf -f -pdflatex='xelatex -halt-on-error' $<
