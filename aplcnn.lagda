@@ -315,6 +315,24 @@ that extends the domain of the lifted binary operation and to accept
 base types, vectors and arrays, and their combinations.
 
 \subsection{CNN}
+As an example of a practical application, we consider a convolutional
+neural network for recognising hand-written digits.
+The reference implementation we start from~\cite{cnninapl} is
+written entirely in APL without relying on any external libraries
+or frameworks. The implementation is very concise --- additionally
+to built-in operators, it only requires to implement 10 new functions.
+Each of these functions is a one line of APL code.  Our goal is to
+translate these functions into our embedded array language.
+This has two purposes.  First, we stress-test
+abstractions used in our embedding and the extractor capabilities.
+Second, we verify that all the shapes and ranks match, the indexing
+is in-bound, no division by zero occurs, and that the functions are
+terminating.  As APL is dynamically typed, it is difficult to be
+sure that no runtime errors will occur.  Embedding the code into
+Agda essentially requires us to define a type system for the operators
+in use and guarantee that they hold.
+We consider three representative examples of our encoding and explain
+the details.
 
 \begin{code}[hide]
 module CNN where
@@ -335,27 +353,105 @@ module CNN where
   _¨_ = _̈_
 \end{code}
 
+
+\paragraph{Logistic function}
+After the convolution and fully-connected layers in our CNN the
+activation function is applied to each of the results.  The activation
+function in use is called standard logistic and it is defined as:
+\(
+\frac{1}{1 - e^x}
+\), and it is being applied to all the elements of the resulting
+array.  Here is the implementation in APL and in our embedding:
 \begin{code}
   -- logistic←{÷1+*-⍵}
   logistic : ∀ {n s} → Ar Float n s → Ar Float n s
   logistic ω = ÷ᵣ 1.0 +ᵣ *ᵣ -ᵣ ω
+\end{code}
+As it can be seen, the implementations are almost identical.
+There are two important reasons for that: the ability to define the
+precedence and the associativity of the operators; and the automatic
+casts that we explained before.  All the operators in APL are
+right-associative, which we implement as well.  We have chosen
+to distinguish the operations on base types by adding a postfix
+to the name.  That is why instead of \AF{\_+\_}, \AF{\_-\_}, \etc{}
+we have \AF{\_+ᵣ\_}, \AF{\_-ᵣ\_} when we the arguments are arrays
+of base type \AF{Float}.  If we read the body right to left, the
+function negates (\AF{-ᵣ\_}) its argument, then it computes the
+exponent (\AF{*ᵣ\_}) of that result, then it adds \AN{1.0} to all
+the elements, and finally it takes a reciprocal (\AF{÷ᵣ\_}).  The
+function is shape- and rank-polymorphic; it does not require additional
+proofs and it normalises to a single \AC{imap}.
 
-  -- backbias←{+/,⍵}
-  backbias : ∀ {n s} → Ar Float n s → Scal Float
-  backbias ω = _+ᵣ′_ / , ω
-
+\paragraph{Mean Squared Error}
+Generally, the nice behaviour of the above function is not surprising
+because the function mapping scalar operations to individual array
+elements.  However, this pattern is very common in array-based
+applications.  Here is another example when we compute the mean
+error which is a sum of squared elements divided by two:
+% \begin{code}
+%  -- backbias←{+/,⍵}
+%  backbias : ∀ {n s} → Ar Float n s → Scal Float
+%  backbias ω = _+ᵣ′_ / , ω
+% \end{code}
+\begin{code}
   -- meansqerr←{÷∘2+/,(⍺-⍵)*2}
   meansqerr : ∀ {n s} → Ar Float n s → Ar Float n s → Scal Float
-  meansqerr α ω = _÷ᵣ 2.0 $ _+ᵣ′_ / , (α +ᵣ ω) ×ᵣ (α -ᵣ ω)
+  meansqerr α ω = _÷ᵣ 2.0 $ _+ᵣ′_ / , (α -ᵣ ω) ×ᵣ (α -ᵣ ω)
+\end{code}
+Here additionally to element-wise mapping we have a reduction of
+the elements --- the \AF{\_/\_} operator.  On the right hand side
+it gets an array that is being reduced, and the left operator is
+a binary function that performs the actual operation.  We have a
+flattened (\AF{,\_}) square of differences on the right, and
+addition on \AD{Float}s on the left.  We need to flatten the
+array on the right because \AF{\_/\_}, per APL semantics reduces
+over the last axis of the array.  Also, in comparison to reductions
+found in many functional languages, APL does not require the default
+element.  Instead, it deduces the default element from the operation
+in use.  We have encoded the same behaviour using instance resolution
+mechanism.  However, we had to supply the addition on floats
+\AF{\_+ᵣ′\_}, rather than our generalised addition on the arrays
+and vectors of floats \AF{\_+ᵣ\_}.  This happens because otherwise
+Agda fails to instantiate hidden arguments to \AF{\_+ᵣ\_}.  Finally,
+partial application of division on the right \apl{÷∘2} is a built-in
+feature of mix-fix operators in Agda.
 
+
+\paragraph{Back Average Pool}
+In the reverse average pooling function, we need to specify
+a shape restriction.  The shape of the result must be twice
+as big (in every element) as the shape of the input array.
+\begin{code}
   -- backavgpool←{2⌿2/⍵÷4}⍤2
   backavgpool : ∀ {s} → Ar Float 2 s → Ar Float 2 $ ▾ (2 × s)
   backavgpool {s = _ ∷ _ ∷ []} ω = 2 ⌿ᵣ 2 /ᵣ′ ω ÷ᵣ 4.0
     where
       infixr 20 _/ᵣ′_
       _/ᵣ′_ = _/ᵣ_ {s = _ ∷ []}
+\end{code}
+We specify this relation using our lifted arithmetic operations:
+\AN{2} \AF{×} \AB{s}, where the left argument is of type \AD{ℕ},
+and the right argument is \AD{Vec} \AD{ℕ} \AN{2}.  The multiplication
+returns a 1-dimensional array of type
+\AD{Ar} \AD{ℕ} \AN{1} (\AN{2} \AF{∷} \AC{[]}), and we typecast it
+back to \AD{Vec} using the \AF{▾\_} function.
 
+The function itself divides all the array elements by \AN{4.0} and
+replicates them two times across each row (\AF{\_/ᵣ\_}), and two
+times across each column (\AF{\_⌿ᵣ\_}).  Notice that we had to
+help Agda and specify that \AB{s} is guaranteed to be some vector
+of two elements.  Also, similarly to the previous function, we
+had to supply a hidden argument to \AF{\_/ᵣ\_}.  Notice that instead
+of doing this inside the application chain, we used a \AK{where}
+syntax to define a local variant of the row replicator \AF{\_/ᵣ′\_}.
 
+\paragraph{Average Pooling}
+Our final example is an average pooling function.  It gets a
+two-dimensional array of floats as an argument, where each axis
+is divisible by two.  It partitions the array into sub-arrays
+of shape [2,2] and computes the average of each partition.
+Here is how we implement this:
+\begin{code}
   -- avg ← { (+/÷≢),⍵ }
   -- avgpool ← { (x y) ← ⍴⍵ ⋄ avg⍤2 ⊢ 0 2 1 3⍉(x÷2) 2 (y÷2) 2⍴ ⍵ }
   avgpool : ∀ {s} → Ar Float 2 $ ▾ (s × 2) → Ar Float 2 s
@@ -369,11 +465,29 @@ module CNN where
            f (i , pf) = let ix , ix<s = ix→a iv in
                         p $ a→ix ((ix × 2) + i) (s × 2) $ A<B⇒K<2⇒A*2+K<B*2 ix<s pf
 \end{code}
+It is interesting, that in this particular example, a direct
+implementation that uses indexing is more straight-forward than
+the one expressed in index-free style.  The result of average
+pooling is given by the \AC{imap} where the index mapping is
+given by the function called \AF{body}.  If we read the definition
+of \AF{body} right to left: we obtain an array of indices (\AF{ι\_})
+into a two-dimensional array of shape [2,2].  Note that \AF{[2,2]}
+is just the identifier name.  Then for each element (\AF{\_¨\_})
+in that array we apply a locally-defined function \AF{f}.  Then
+we sum the elements up and divide them by \AN{4.0}.  The indices
+returned by (\AF{ι\_}) are dependent pairs where the first component
+is a 1-dimensional array representing the value of the index, and the
+second component is a proof that the index is strictly less than the
+array shape (in our case [2,2]).  In \AF{f}, we pattern-match
+on the pair, and we compute selection into the argument of \AF{avgpool}
+at index $2iv+i$.  When selecting at that index, we are required to
+prove that it is within the bounds of the array.  This is done in
+the last line of \AF{avgpool} where we had to prove a theorem that
+this is indeed the case.
 
-\todo[inline]{Explain the implementation details of the above and below.
-  And probably leave one or two functions before the avgpool.}
 
-Here is the extracted code for the \AF{avgpool} function.
+Here we consider an extracted \AF{avgpool} with some reformatting
+for better readability.
 \begin{lstlisting}[mathescape=false]
 float[.,.] avgpool(int[2] x_1, float[.,.] x_3) {
   float[.,.] __ret;
@@ -399,3 +513,24 @@ float[.,.] avgpool(int[2] x_1, float[.,.] x_3) {
   return __ret;
 }
 \end{lstlisting}
+One of the important points of the extracted code is that all the
+local definitions \AF{body} and \AF{f} were inlined, as well as
+all the compound array operations.  We are very close to the code
+that a programmer could write.  We start with assertions.  From
+the type signature we deduce that the first argument must be a
+two-element array, and the shape of the second argument is twice
+the shape of the first argument.  We use arithmetic operations
+prefixed with \$, to indicate that these are operations on scalars
+(int and float) to help the compiler with instantiating overloadings.
+At the end of the function, we generate an assertion that the shape
+of the returned result must be equal to the first argument.
+In the body of the \texttt{with}-loop we perform 4 selections
+into the argument array and average them.  Notice how we define
+a C preprocessor macro \AB{p}, so that we could use the
+pattern-matched argument of the \AC{imap} as a function.
+As SaC is first-order language, and the argument to
+\AC{imap} is a function, we mimic the higher-order function
+with the macro.  We are allowed to do this, because \AC{imap}
+is the only supported construct that accepts a function as an
+argument.
+
