@@ -350,17 +350,15 @@ module CNN where
 
   -- backavgpool←{2⌿2/⍵÷4}⍤2
   backavgpool : ∀ {s} → Ar Float 2 s → Ar Float 2 $ ▾ (2 × s)
-  backavgpool {s = _ ∷ _ ∷ []} ω = 2 /ᵣ′ 2 ⌿ᵣ ω ×ᵣ 4.0
+  backavgpool {s = _ ∷ _ ∷ []} ω = 2 ⌿ᵣ 2 /ᵣ′ ω ÷ᵣ 4.0
     where
       infixr 20 _/ᵣ′_
       _/ᵣ′_ = _/ᵣ_ {s = _ ∷ []}
 
-  -- ̈ 
+
   -- avg ← { (+/÷≢),⍵ }
   -- avgpool ← { (x y) ← ⍴⍵ ⋄ avg⍤2 ⊢ 0 2 1 3⍉(x÷2) 2 (y÷2) 2⍴ ⍵ }
-  avgpool : ∀ {s}
-          → Ar Float 2 $ ▾ (s × 2)
-          → Ar Float 2 s
+  avgpool : ∀ {s} → Ar Float 2 $ ▾ (s × 2) → Ar Float 2 s
   avgpool {s} (imap p) = imap body
     where
       body : _ → _
@@ -371,3 +369,33 @@ module CNN where
            f (i , pf) = let ix , ix<s = ix→a iv in
                         p $ a→ix ((ix × 2) + i) (s × 2) $ A<B⇒K<2⇒A*2+K<B*2 ix<s pf
 \end{code}
+
+\todo[inline]{Explain the implementation details of the above and below.
+  And probably leave one or two functions before the avgpool.}
+
+Here is the extracted code for the \AF{avgpool} function.
+\begin{lstlisting}[mathescape=false]
+float[.,.] avgpool(int[2] x_1, float[.,.] x_3) {
+  float[.,.] __ret;
+  s = x_1;
+  assert (shape (x_1)[0] == 2);
+  assert (take (2, shape (x_3)) 
+           == cons ((x_1[0] $* 2), cons ((x_1[1+0] $* 2), empty ([]))));
+
+#define p(__x) (x_3)[__x]
+  __ret = with {
+    (.<= iv_1 <=.) {
+       i = iv_1[0];
+       j = iv_1[1+0];
+    } : (   (p(cons(((i $* 2) $+ 0), cons(((j $* 2) $+ 0), []))) 
+         $+ (p(cons(((i $* 2) $+ 0), cons(((j $* 2) $+ 1), []))) 
+         $+ (p(cons(((i $* 2) $+ 1), cons(((j $* 2) $+ 0), [])))
+         $+ (p(cons(((i $* 2) $+ 1), cons(((j $* 2) $+ 1), [])))
+         $+ 0.0f))))
+        $/ 4.0f);
+  }: genarray (s, zero_float ([]));
+
+  assert (take (2, shape (__ret)) == x_1);
+  return __ret;
+}
+\end{lstlisting}
