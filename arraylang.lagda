@@ -1,19 +1,19 @@
 \section{\label{sec:array}Array Language}
 
 In this section we switch to extraction of a different language
-called SaC.  We explain essence of the language,
+called Single Assignment C --- \sac{} for short.  We explain essence of the language,
 our embedding for it in Agda, and the difference in the
 extraction process when comparing to Kaleidoscope.
 
 \subsection{\sac{} --- Single Assignment C}
-SaC is a first-order array language that looks like C syntactically,
+\sac is a first-order array language that looks like C syntactically,
 but nonetheless
 is purely functional.  The main idea of \sac{} is to provide
 a framework to efficiently operate with multi-dimensional arrays.
 All types in \sac{} represent arrays with potentially unknown ranks
 (number of dimensions) and shapes (extents along dimensions).
-Purely functional nature is achieved by ruling out
-side-effecting expressions, undefined behaviour, pointers, and
+Its purely functional nature is achieved by ruling out
+expressions that have side effects, undefined behaviour, pointers, and
 other imperative constructions of C.  This allows the compiler
 to use implicit memory management and to make decisions about
 parallel execution of certain code parts without requiring
@@ -24,10 +24,10 @@ the language that will be used in extraction examples.  For
 more information about SaC refer to~\cite{GrelSchoIJPP06,sactut}.
 
 The main distinctive features of SaC is its hierarchy of array types,
-intersection types and the unified data parallel array comprehensions.
+intersection types and the unified data-parallel array comprehensions.
 
 \paragraph{Type System}
-In SaC, functions can express rank-polymorphic computations.  That is
+In SaC, functions express rank-polymorphic computations.  That is, they
 compute on arrays of arbitrary rank and shape.  The type system tracks
 the information about shapes by using explicit attributes.  For example,
 arrays where elements are integers and the shape is statically known
@@ -39,7 +39,7 @@ The shape of an array at runtime is always given by a tuple of natural
 numbers.  In types, the shape attribute is an approximation of the
 runtime value.  In the example above array \texttt{scal} is of rank
 zero, and it represents a single element.  These arrays are often referred
-as scalars in array theories.  The \texttt{vec} is 1-dimensional array
+as scalars in array theories.  The \texttt{vec} is a 1-dimensional array
 containing 42 elements, and \texttt{ten} is a 3-dimensional array of
 shape $10\times10\times10$.
 
@@ -54,9 +54,10 @@ correspondingly.  Finally, arrays can have a dynamic number of dimensions:
 \begin{lstlisting}
   int[+] d;         int[*] e;
 \end{lstlisting}
-where plus means anything nonzero, and star means any shape.
+where \texttt{d} is an array of rank 1 or higher, and \texttt{e} is an array of any rank.
 
-These type attributes form a natural partial order:
+There is a natural partial order on type attributes according to the
+precision with which they describe the rank and dimensions of an array:
 \begin{lstlisting}
                        [ ]  $\le$  [*]
     [42]   $\le$  [.]    $\le$  [+]  $\le$  [*]
@@ -65,29 +66,36 @@ These type attributes form a natural partial order:
 \end{lstlisting}
 This shape hierarchy gives rise to function overloading.  The idea is
 that a programmer may define a generic algorithm as well as a number of
-special cases for certain chosen shapes.  By giving the same name, we
-create an overloading, as long as instances
-can be clearly disambiguated from the shapes of the arguments.  Moreover,
-the compiler guarantees that that the most specific instance is always going
-to be taken.  During the optimisation cycle the compiler creates instances
-based on the uses of the overloading.
+special cases for certain chosen shapes.  By using the same name, we
+create an overloading, where the different versions of a function
+can be disambiguated from the shapes of the arguments.  Moreover,
+in case of overlap the compiler guarantees that that the most specific instance
+will be used.
+% During the optimisation cycle the compiler creates instances
+% based on the uses of the overloading.
 
-The design of the type system is driven by the user convenience.  As the
-shape attributes are type-level objects, we can successfully run the type
-inference.  The drawback however is that there is no way to express
-complex shape relations in case of statically unknonwn shapes.  For example,
+This design of the type system is driven by the user convenience.
+The shape attributes exist at the type level and can be inferred
+automatically by the compiler.
+%
+The drawback however is that there is no way to express
+complex shape relations in case of statically unknown shapes.  For example,
 it would be useful to specify matrix multiplication as:
 \begin{lstlisting}
   int[m,n] matmul (int[m,k], int[k,n])
 \end{lstlisting}
-Unfortunately, there is no notion of type-level varibales.  While this problem
-can be fixed relatively easy, the functions like take or drop:
+Unfortunately, there is no notion of type-level varibales.
+%
+While this problem can be fixed relatively easy, other functions
+like \texttt{take} or \texttt{drop} below are more problematic:
 \begin{lstlisting}
   int[.] take(int n, int[.] v)  // take(2, [1,2,3,4]) == [1,2]
   int[.] drop(int n, int[.] v)  // drop(2, [1,2,3,4]) == [3,4]
 \end{lstlisting}
-would require some form of dependent types, which means that we would have
-to give up global type inference.
+%
+Annotating them with a precise size would require some form of
+dependent types, which means that we would have to give up global type
+inference.
 
 The key language construct in SaC is the \texttt{with}-loop --- a
 data-parallel array comprehension construct.  The programmer
@@ -114,12 +122,12 @@ The latter is specified with \texttt{genarray} at the end of the
 with-loop, where the first argument is the shape of the result,
 and the second one is the default element.  The default element servers
 two purposes: i) providing a value for the array indices that were
-not specified in the index ranges; ii) provide the shape of each
+not specified in the index ranges; ii) providing the shape of each
 element.  The latter is important because the computed elements
 at each index may be arrays of non-empty shapes.  However, all
 the element shapes must be the same, \eg{} vectors of length 5.
 The shape of the result is a concatenation of the genarray
-shape and the shape of the default element.  Back to matmul ---
+shape and the shape of the default element.  Going back to \texttt{matmul},
 the inner with-loop computes the sum of point-wise multiplied
 $i$-th row and $j$-th column.  This is expressed with \texttt{fold},
 where the first argument is a binary function, and the second
@@ -146,10 +154,10 @@ module ArType where
 \end{code}
 
 In order to embed SaC, we have to define the type for multi-dimensional
-arrays, and three constructs: with-loop, shape, and selection.  Our goal
-is to specify them such that we can express non-trivial shape relations
+arrays, and three constructs: with-loops, shapes, and selections.  Our goal
+is to express non-trivial shape relations
 between the arguments of a function and to ensure in-bound array indexing
-statically.  We achieve this with the following types:
+statically.  We achieve this with the following two Agda types:
 \begin{code}
   data Ix : (d : ℕ) → (s : Vec ℕ d) → Set where
     []   : Ix 0 []
@@ -169,22 +177,22 @@ is given by a function from valid indices to $X$.
 In some sense \AD{Ar} and \AD{Ix} are second-order versions of \AD{Vec}
 and \AD{Fin}.  This could be also thought of as a
 computational interpretation of the Mathematics of Arrays~\cite{} (where $\Psi$
-becomes an array constructor) or generalisation of pull arrays~\cite{pushpull}.
+becomes an array constructor), or as a generalisation of pull arrays~\cite{pushpull}.
 
 This encoding intrinsically guarantees that all the array accesses are within
-bounds.  If we compare \AC{imap} and \texttt{genarray} \texttt{with}-loop,
-the former does not allow to specify multiple partitions, as \AC{imap}
-function is define over the entire range.  Instead we would
-have to use a conditional within the \AC{imap} function.  While this might
+bounds.  If we compare \AC{imap} and the \texttt{genarray} \texttt{with}-loop,
+the former does not allow to specify multiple partitions, as the \AC{imap}
+function must be defined over the entire range.  Instead, we would
+have to use a conditional within the \AC{imap} function to express a partition.  While this might
 have an impact on performance in some cases, it is significantly easier to
 prove properties about \AC{imap}s than with-loops.  Also, almost all
-our examples use the entire index space.  As for the \texttt{fold}
-\texttt{with}-loop, there is no need for a special construct as well.
-We can define
-a recursive function (analogous to reduce on \AD{Vec}) and extract
-its application into the fold \texttt{fold} \texttt{with}-loop.
+our examples use the index space uniformly, so there is no need for conditionals.  As for \texttt{fold}
+\texttt{with}-loops, there is no need for a special construct either:
+we can define
+a recursive function (analogous to reduce on \AD{Vec}), and let the extractor
+translate it into the fold \texttt{fold} \texttt{with}-loop.
 
-Consider now the matrix multiply example expressed in the embedded
+Consider now the matrix multiplication example expressed in the embedded
 language:
 \begin{code}[hide]
   open Ar public
@@ -198,14 +206,14 @@ language:
      body : _
      body (i ∷ j ∷ []) = sum $ imap λ where (k ∷ []) → a (i ∷ k ∷ []) * b (k ∷ j ∷ [])
 \end{code}
-As it can be seen, with a similar level of expressiveness, the
+As can be seen, with a similar level of expressiveness, the
 implementation encodes the correct shape relation between the arguments and
 guarantees in-bound indexing without any explicit proofs.
 
 \subsection{Argument Reconstruction}
-The proposed \AC{Ar} type has a very satisfying property that
+Our definition of \AD{Ar} satisfies the very useful property that
 any composition of operations on arrays normalises to a single
-imap.  Consider an example:
+\AC{imap}.  Consider an example:
 \begin{code}[hide]
 module ExFuse where
   open ArType
@@ -237,20 +245,23 @@ module ExFuse where
   ex a b = a ᵀ + (b * b)
 \end{code}
 Here we defined \AF{\_+\_} and \AF{\_*\_} as element-wise operations
-on the array elements.  The \AF{\_ᵀ} is a transpose.  Note that all
-of these are defined in a rank-polymorphic style.  With transpose
-we had to apply a proof (\AF{reverse-inv}) that reverse of an
+on the array elements.  The \AF{\_ᵀ} is a transposition of the matrix,
+which reverses the order of the dimensions.  Note that all
+of these are defined in a rank-polymorphic style.  For transposition
+we had to apply a proof (\AF{reverse-inv}) that reversing an
 index is involutive.  The body of \AF{ex} is given as four
 operations on the entire arrays, conceptually creating a new copy
 of an array at every application.  Due to our encoding, the
 the body of \AF{ex} normalises into a single \AC{imap}.
-
+%
 This is largely possible because we defined \AD{Ar} as a record,
 and these are guaranteed to preserve $\eta$-equality.  That is,
 every \AB{x} : \AD{Ar} \AB{d} \AB{s} is \emph{definitionaly} equal
-to \AC{imap} (\AR{sel} x).  However, there is an unfortunate consequence.
+to \AC{imap} (\AR{sel} x).
 
-As we extract \AC{imap} into a \texttt{genarray} with-loop, we have
+However, using a record type for \AD{Ar} posed an unexpected challenge.
+%
+As our extractor translates \AC{imap} to a \texttt{genarray} with-loop, it has
 to supply the shape of the resulting array.  In our encoding, this is
 a type-level value (the last argument of \AD{Ar}) which is not stored
 in the internal representation of the record value.  For example, consider
@@ -273,17 +284,17 @@ the following function and its reflected body:
 \end{code}
 }
 \end{mathpar}
-the type-level arguments that we need are erased, as they can be
+The (hidden) type-level arguments to \AC{imap} that we need are erased by Agda, as they can be
 found in the type.  They are present in the type signature, and
 in principle they could be inferred.  However, this far from
 trivial as \AC{imap} may appear in arbitrary contexts.  Therefore,
 we would have to implement local type inference for an arbitrary
 Agda term.
 
-Instead, we extend the reflection API and implement type argument
+Instead, we decided to extend the reflection API and implement type argument
 reconstruction in the following pull request:
 \url{https://github.com/agda/agda/pull/5022}.
-We have added the following function:
+In particular, we have added the following primitive function:
 \begin{code}
   withReconstructed : ∀ {a} {A : Set a} → TC A → TC A
 \end{code}
@@ -298,22 +309,22 @@ We have added the following function:
     dontReduceDefs : ∀ {a} {A : Set a} → Names → TC A → TC A
 \end{code}
 that instructs all the further calls to \AF{getDefinition}, \AF{normalise},
-\AF{reduce}, \etc{} to reconstruct the arguments that are currently
-marked as unknonwn.  This is the biggest modification to Agda that
-we had to do.  We use this interface when \AF{kompile} obtains the
-representation of each definition.  For example getting a type signature
+\AF{reduce}, \etc{} to reconstruct the arguments that are normally
+marked as \AC{unknown}.  This is the biggest modification to Agda that
+we had to do.  We use this function when \AF{kompile} obtains the
+representation of each definition.  For example, getting the type signature
 of some function \AF{f} looks like:
 \begin{code}
   ty = withReconstructed $ dontReduceDefs base-funs $ normalise =<< getType f
 \end{code}
 
 \subsection{Validating Types}
-One of the major difference between extracting into Kaleidoscope and
+One of the major differences between extracting into Kaleidoscope and
 into SaC is the presence of the non-trivial type system in the latter.
 This requires us to choose which Agda types are going to be supported
-and how do we translate them into the target language.
+and how to translate them into the target language.
 
-SaC is lacking support for inhomogeneously nested arrays.  All the
+SaC lacks support for heterogeneously nested arrays: all the
 elements in the array must be of the same shape.  Therefore, there
 is no way to construct the following types:
 \begin{lstlisting}
@@ -337,15 +348,15 @@ be flattened according to the scheme above.   Consider an example:
   }
 \end{lstlisting}
 The function \texttt{gen} computes a two-dimensional array.  The
-\texttt{with}-loop that this array is generated with has a 1-dimensional
+\texttt{with}-loop that this array generates has a 1-dimensional
 index-space (specified by the shape [6]), and non-scalar elements.
 The latter is given by the shape of the default element, which is a
 vector of 5 zeroes.  As a result we get an array of shape [6,5].
 
-This suggests that nested \AC{imap}s can be mapped directly into
+This suggests that nested \AC{imap}s can be mapped directly to
 with-loops, translating nested array types in Agda into flattened
 types in SaC.  However, while \AC{imap} is a constructor for \AD{Ar},
-there is also an eliminator \AR{sel}.  Selecting into a nested array
+there is also the projection \AR{sel}.  Selecting into a nested array
 would result in selection on a partial index.  That is:
 \begin{code}
   partial-sel : Ar (Ar ℕ 1 (5 ∷ [])) 1 (6 ∷ []) → Ar ℕ 1 (5 ∷ [])
@@ -366,17 +377,17 @@ as follows:
     }: genarray (sh_inner, 0);
   }
 \end{lstlisting}
-When selecting an array \texttt{a} at index \texttt{idx}, 
+When selecting an array \texttt{a} at index \texttt{idx},
 the shape of the result is computed by dropping
 \texttt{idx}-many elements from the shape of the argument.  The
 content of the result is given by a mapping \texttt{iv} $\mapsto$
 \texttt{a}[\texttt{idx} \texttt{++} \texttt{iv}], where \texttt{iv}
 iterates over the index space of the resulting array.  Essentially,
-we partially apply selection operation with \texttt{idx}.  Partial
+we partially apply the selection operation to \texttt{idx}.  Partial
 selection is a well-known pattern and it is defined in the standard
 library for all the supported base types such as int, float, \etc{}
 
-Array shapes in Agda are represented with \AD{Vec} type, whereas
+Array shapes in Agda are represented with the \AD{Vec} type, whereas
 SaC shapes are 1-dimensional arrays.  Mapping a vector type is
 straight-forward, as we only need to implement nil/cons to construct
 vectors and head/tail to eliminate them:
@@ -385,8 +396,8 @@ int[.] cons (int x, int[.] xs) {          int[.] tl (int[.] xs) {
   return with {                             return with {
     ([0] <= iv <= [0]): x;                    (. <= iv <= .): xs[iv+1];
     ([1] <= iv <= .): xs[iv - 1];           }: genarray (shape (xs) - 1); }
-  }: genarray (1 + shape (xs));           
-}                                         int hd (int[.] xs) { retunr xs[0]; }    
+  }: genarray (1 + shape (xs));
+}                                         int hd (int[.] xs) { retunr xs[0]; }
 \end{lstlisting}
 Finally, we notice that if we can extract \AD{Vec}s, we can extract
 \AD{List}s into exactly the same target language constructs.
