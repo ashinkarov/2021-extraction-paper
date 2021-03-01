@@ -76,7 +76,7 @@
 \newcommand{\apl}[1]{{\aplfont\texttt{#1}}}
 
 %\newfontfamily{djvufont}{DejaVu Sans Mono}
-\newfontfamily\consolas{DejaVu Sans Mono}
+%\newfontfamily\consolas{DejaVu Sans Mono}
 
 \usepackage{mathpartir}
 
@@ -87,6 +87,7 @@
 \usepackage{agda}
 \usepackage{newunicodechar}
 \usepackage[final]{listings}
+
 
 \newunicodechar{∷}{::}
 \newunicodechar{→}{\ensuremath{\to}}
@@ -103,7 +104,7 @@
 \newunicodechar{∸}{\ensuremath{\dot{-}}}
 \newunicodechar{⊛}{\ensuremath{\circledast}}
 \newunicodechar{ᵀ}{\ensuremath{{}^{\text{T}}}}
-
+\newunicodechar{⌿}{\ensuremath{\not-}}
 
 % Some shortcut commands for agda symbols
 \newcommand{\AD}[1]{\AgdaDatatype{#1}}
@@ -125,13 +126,13 @@
 
 
 % \usepackage{ifthen}
-%
+% 
 % % Insert extra space before some tokens.
 % \DeclareRobustCommand{\AgdaFormat}[2]{%
 %   \ifthenelse{
 %     \equal{#1}{≡⟨} \OR
 %     \equal{#1}{≡⟨⟩} \OR
-%     \equal{#1}{∎}
+%     \equal{#1}{ ̈}
 %   }{\ }{}#2}
 
 \definecolor{xgray}{rgb}{0.5,0.5,0.5}
