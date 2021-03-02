@@ -250,12 +250,12 @@
 %% before \maketitle command
 \begin{abstract}
   Dependently-typed host languages empower users to verify a wide
-  range of properties of embedded domain-specific languages and
-  programs written in them.  Designers of such an embedded language
+  range of properties of embedded languages and
+  programs written in them.  Designers of such embedded languages
   are faced with a difficult choice between using a shallow or a deep
-  embedding.  A shallow embedding is easier to use because the entire
+  embedding.  The former is easier to use because the entire
   infrastructure of the host langauge is immediately
-  available. Meanwhile, a deep embedding gives full access to the
+  available. Meanwhile, the latter gives full access to the
   structure of embedded programs, but is difficult to use in practice,
   especially when the embedded language is itself dependently typed.
 
@@ -266,7 +266,7 @@
   and later use reflection to expose the deep structure of the
   embedded programs.
   %
-  Concretely, we apply this technique to embed three low-level
+  Concretely, we apply this technique to embed three
   programming languages --- Kaleidoscope, SaC, and (a subset of) APL ---
   into the dependently typed theorem prover Agda, using dependent
   types to statically enforce several properties of interest.  We then
@@ -351,18 +351,19 @@ targeting a specific tool or language that is not supported by the
 existing backends, we are stuck.
 
 There are two common approaches to this problem: i) extending the
-toolchain to produce code in the desired target (the \emph{shallowly
-embedded} approach); or ii) defining a syntactic representation of the
-target language and implement the program in it (the \emph{deeply
-embedded} approach). A shallow embedding gives the most freedom but it
+toolchain to produce code in the desired target; or ii) defining
+a syntactic representation of the target language and implement
+the program in it.  The first approach gives the most freedom but it
 may be technically challenging, as one has to modify the internals of
-the host language itself.  A deep embedding requires less work
-up-front, but the resulting encodings get rather impractical the
-larger they get, especially when the embedded language is itself
-dependently typed.
+the theorem prover.  The second approach forces us to define
+a deep embedding and express our specifications in it.  While this
+seem easier up-front, the resulting encodings of the specifications
+get impractically large, especially when the embedded language is
+itself dependently typed.
 
 In this paper we consider an approach that combines the benefits of
-shallow and deep embeddings. Our approach relies on \emph{compile-time
+the two aforementioned solutions. We use a shallow embedding of the
+target langauge and rely on \emph{compile-time
 metaprogramming} to define custom extractors, making it possible to
 write a verified program hand-in-hand with an executor for it --- all
 within a single environment.  No need to touch internals of the host
@@ -389,8 +390,8 @@ In this paper, we are interested in writing verified embedded programs
 that can be extracted to an existing language.  We approach this problem by
 using an embed-typecheck-extract loop.  That is, we first embed a
 language or a subset of it into a theorem prover, using dependent
-types to encode properties of interest; next we use the typechecker of
-the host language to verify the properties; and finally we use a
+types to encode properties of interest; next, we use the typechecker of
+the host language to verify the properties; and finally, we use a
 custom extractor to translate our implementation to the target
 language.
 %
