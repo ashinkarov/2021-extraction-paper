@@ -1368,7 +1368,7 @@ this is semantically sound, it leads to unnecessary code duplication:
 While changing Agda itself to support `let' in the internal language
 would be a major change, we can use the following
 elegant workaround.  Agda's do-notation is a syntactic sugar that
-expands to the monadic operations \AF{\_>>=\_} and \AF{return}.
+expands to the monadic bind \AF{\_>>=\_}.
 In particular, we can work in the identity monad by defining
 $a~\AF{>>=}~f = f~a$ and adding it to our extractor,
 \begin{code}[hide]
