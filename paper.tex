@@ -126,7 +126,7 @@
 
 
 % \usepackage{ifthen}
-% 
+%
 % % Insert extra space before some tokens.
 % \DeclareRobustCommand{\AgdaFormat}[2]{%
 %   \ifthenelse{
@@ -342,11 +342,12 @@
 
 Dependently-typed systems such as Coq~\cite{}, Agda~\cite{}, Lean~\cite{}
 or Idris~\cite{} make it possible to write down specifications
-of programs as types and check that programs satisfy those specification
+of programs as types and check that those specification are satisfied
 during type checking. These verified programs can be either executed
-directly, or translated into
-general-purpose target languages.  However, if a specific tools or language
-is not supported by the existing backends, we are stuck.
+directly, or compiled into a
+general-purpose target language.  However, if we want to generate code
+targeting a specific tool or language that is not supported by the
+existing backends, we are stuck.
 
 There are two common approaches to this problem: i) extending the
 toolchain to produce code in the desired target (the \emph{shallowly
@@ -367,7 +368,7 @@ within a single environment.  No need to touch internals of the host
 language; no encoding artefacts.
 % Verified programming turns into Embed-Typecheck-Extract Loop.
 
-Recently, many dependently typed systems started supporting
+Specifically, we use
 \emph{reflection}~\cite{idris-refl, lean-refl,metacoq,agda-refl} (also
 known as \emph{direct reflection}~\cite{nuprl-refl}), a form of
 compile-time metaprogramming\footnote{This use of the word
@@ -377,16 +378,14 @@ languages, which is a form of \emph{runtime metaprogramming}.}.
 That is, the language has \texttt{quote}/\texttt{unquote}
 primitives that translate expressions to their internal representation
 and back.  The internal representation is regular data that can be
-accessed and manipulated as usual.  The main intention of
-reflection APIs is to automate generaliseable routine tasks of writing
-boilerplate code, \eg{} tactics.  However, existing APIs are
-typically complete enough to be used for general
+accessed and manipulated as usual.  The main goal of
+reflection is to automate routine tasks of writing
+boilerplate code, \eg{} tactics.  However,  APIs are
+typically also complete enough for general
 code generation tasks such as writing custom compiler backends.
 
-The use-case we consider in this paper is slightly different.
-%Instead writing a full backend for the entire dependently-typed langauge,
-We are interested in writing verified implementations that can be used
-in the context of an existing language.  We approach this problem by
+In this paper, we are interested in writing verified embedded programs
+that can be extracted to an existing language.  We approach this problem by
 using an embed-typecheck-extract loop.  That is, we first embed a
 language or a subset of it into a theorem prover, using dependent
 types to encode properties of interest; next we use the typechecker of
@@ -406,11 +405,14 @@ Our proposed approach has several advantages:
   \item Firstly, working with a shallow embedding is much easier than
   working with a deep one.  While deep embeddings provide full access
   to the program representation, they require us to encode the full
-  syntax and typing rules of the target language.  A number of
-  examples~\cite{} show how advanced type systems such as
-  System-F~\cite{} or dependent types with families~\cite{} can be
-  leveraged to share the host type system for typechecking target
-  programs.  This works beautifully for target languages with simple
+  syntax and typing rules of the target language.
+  %
+  %A number of
+  %examples~\cite{} show how advanced type systems such as
+  %System-F~\cite{} or dependent types with families~\cite{} can be
+  %leveraged to share the host type system for typechecking target
+  %programs.
+  This works beautifully for target languages with simple
   type systems, but the embedding gets impractically ugly~\cite{} in
   case of dependently typed ones.  This matters because we use
   dependent types in the embedding to encode the properties of
@@ -422,7 +424,7 @@ Our proposed approach has several advantages:
   dependently-typed framework means we can modify the extractor
   without rebuilding the whole compiler of the host language.
   Extractors can be fine-tuned for the particular application, \eg{}
-  treating a chosen function in a specific way.  Extractors can make
+  treating a chosen function in a specific way.  Extractors can also make
   full use of dependent types, ensuring that the extraction process is
   sound.
 
@@ -431,24 +433,25 @@ Our proposed approach has several advantages:
   language to customize the behaviour of the extractor
   further. Concretely, we use Agda's \emph{rewrite rules} as a
   lightweight method of applying verified domain-specific
-  optimizations during extraction.  This allows us for example to
-  prove that list reversals are involutive and register this as a
-  rewrite rule.  As a result any double reverses will be eliminated
-  prior the extraction, resulting in better performance of the
-  extracted code.
+  optimizations during extraction.
+  %This allows us for example to
+  %prove that list reversals are involutive and register this as a
+  %rewrite rule.  As a result any double reverses will be eliminated
+  %prior the extraction, resulting in better performance of the
+  %extracted code.
 \end{itemize}
 
-We implement extractors for Kaleidoskope~\cite{kaleidoscope}
-and SaC~\cite{sac} in Agda.
+We implement extractors for Kaleidoskope~\cite{kaleidoscope} (Section~\ref{sec:basic-extr})
+and SaC~\cite{sac} (Section~\ref{sec:array}) in Agda.
 The former is a minimalist langauge that we use to demonstrate the basic
 extraction principles.  The latter is a high-performance
 array language that can generate efficient code for various architectures, but
 it has a restrictive type system.  Our SaC embedding guarantees
 program termination, in-bound array indexing, and safety of arithmetic operations.
 %
-Finally, we also embed a small subset of APL~\cite{} into Agda, which
+Finally, we also embed a small subset of APL~\cite{} into Agda (Section~\ref{sec:apl}), which
 is sufficient to encode a Convolutional Neural
-Network~\cite{cnninapl}.  Embedding APL is difficult because the
+Network~\cite{cnninapl}.  Embedding APL is challenging because the
 language is untyped, and its basic operators are heavily overloaded.
 We define all the basic operators of APL in terms of the SaC embedding,
 effectively obtaining a compiler from APL into executable binaries.
@@ -459,11 +462,11 @@ The key contributions of this paper are:
     \item We introduce the concept of reflection-based extractors
             for shallowly-embedded languages that are embedded
             in metaprogramming-capable theorem provers.
-    \item We make several extensions to the reflection API of
-            Agda to make it better suited for our goal of defining
+    \item We extend the reflection API of
+            Agda to make it better suited for defining
             custom extractors. Specifically, we extend the clause
             syntax with telescopes, we add new operations for
-            selective reduction, and allow for optional reconstruction
+            selective reduction, and we implement optional reconstruction
             of datatype parameters.
     \item We implement extractors for two languages: Kaleidoscope
             and SaC.  We use the latter as a basis for embedding
@@ -473,15 +476,15 @@ The key contributions of this paper are:
             it extracts correctly.
 \end{itemize}
 
-The rest of the paper is organised as follows.  We start with a brief
-overview of Agda and its reflection API.  In Section~\ref{sec:basic-extr}
-we explain the key principles of reflection-based extractors using
-Kaleidoscope as our target language.  Section~\ref{sec:array} introduces
-our treatment of multi-dimensional arrays and specifics of their
-extraction.  In Section~\ref{sec:apl} we explain a few difficulties
-one may find when embedding real-world languages with sophisticated
-semantics.  We discuss related work in Section~\ref{sec:related}
-before we conclude in Section~\ref{sec:concl}.
+%The rest of the paper is organised as follows.  We start with a brief
+%overview of Agda and its reflection API.  In Section~\ref{sec:basic-extr}
+%we explain the key principles of reflection-based extractors using
+%Kaleidoscope as our target language.  Section~\ref{sec:array} introduces
+%our treatment of multi-dimensional arrays and specifics of their
+%extraction.  In Section~\ref{sec:apl} we explain a few difficulties
+%one may find when embedding real-world languages with sophisticated
+%semantics.  We discuss related work in Section~\ref{sec:related}
+%before we conclude in Section~\ref{sec:concl}.
 
 
 
