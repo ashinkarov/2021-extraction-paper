@@ -1,45 +1,51 @@
 \section{\label{sec:related}Related Work}
 
-\paragraph{Metaprogramming} There exists a very large body of
-work that introduces metaprogramming facilities in a programming
-language.  In~\cite{refl-masses} the authors track the origins
-of the idea to Smith's work on reflection in lisp~\cite{refl-lisp}.
-The paper introduces two systems: 2-lisp and 3-lisp.  The key difference
-is that in the former may accessed the structure of the terms from
-within the programs but the latter can also alter the way terms
-are computed at runtime.  As lisp does not have static types,
-the direct comparison is slightly difficult.  However, in some sense
-we are closer to 3-lisp system within the dependent typechecker,
-as we have an access to the elaborator and can trigger how the
-typechecking proceeds.
-
-These ideas developed were developed further introducing notions
-such as reification~\cite{reification}, partial evaluation of
-interpreters~\cite{futurama}, and modular staging~\cite{lms}.
-Many systems are equipped with metaprogramming capabilities
-based on the idea of \texttt{quote}/\texttt{unquote}:
+\paragraph{Metaprogramming} There is a large body of
+work on metaprogramming facilities in various programming
+languages.  \citet{refl-masses} track the origins
+of metaprogramming to Smith's work on reflection in Lisp~\cite{refl-lisp}.
+%The paper introduces two systems: 2-lisp and 3-lisp.
+%The former may access the structure of the terms from
+%within a programs, while the latter can also alter the way terms
+%are computed at runtime.  As Lisp is not compiled,
+%a direct comparison with Agda is difficult. However, we can
+%view the compile-time behaviour of Agda as a 3-lisp system,
+%as we have an access to the elaborator and can trigger how the
+%typechecking proceeds.
+%
+%Other work on metaprogramming includes notions
+%such as reification~\cite{reification}, partial evaluation of
+%interpreters~\cite{futurama}, and modular staging~\cite{lms}.
+%
+Some prominent metaprogramming systems include
 MetaOcaml~\cite{metaocaml}, MetaMK~\cite{metaml},
-reFlect~\cite{DBLP:journals/jfp/GrundyMO06} and many more.
-However, very often the motivation of these systems is to generate
-the new code, and not to trvaerse/modify the existing one.
-In systems like Template Haskell~\cite{sheard2002template},
-Racket~\cite{plt-tr1} or various lisp/scheme dialects, metaprograms
-have full access to the existing parts of the program.
+reFlect~\cite{DBLP:journals/jfp/GrundyMO06},
+%However, often the main motivation of these systems is to generate
+%new code, and not to travaerse or modify existing code.
+Template Haskell~\cite{sheard2002template},
+Racket~\cite{plt-tr1}, and various other Lisp/Scheme dialects.
+%
+However, these systems typically do not support dependent
+types, so they are not well suited for our goal of statically
+enforcing correctness of embedded programs.
 
 \paragraph{Embedding}
-There exist various~\cite{10.5555/647849.737066,CHAPMAN200921,
-10.1007/978-3-540-74464-1_7,10.1145/3236785,10.1145/1863495.1863497}
-techniques on using dependent types for deep embedding.  While
-the fact that this is possible is impressive, the resulting
-encoding are difficult to use in practice.  On the other hand
-deep embeddings force us to define semantics of the embedded
-language therefore we can reason about its preservation when
-transforming or optimising embedded programs.
+Defining deep embeddings with static guarantees are a common application
+of dependent types~\cite{10.5555/647849.737066,CHAPMAN200921,
+10.1007/978-3-540-74464-1_7,10.1145/3236785,10.1145/1863495.1863497}.
+%
+These embeddings usually also define semantics of the embedded
+language and therefore allow us to reason about the correctness
+of program transformations and optimisations.
+%
+While the fact that this is possible is impressive in theory, the resulting
+encodings are often difficult to use in practice. In this paper
+we instead aim for a more lightweight approach.
 
-In~\cite{deepshallow} this problem has been solved by proposing
-a combination of deep and shallow embeddings.  The idea is to define
-a small deep embedding and leverage classes in Haskell to define
-the rest of the langauge on top of that.  It would be interesting
+\citet{deepshallow} propose to solve this problem with
+a combination of deep and shallow embeddings.  Their idea is to define
+a small deep embedding and leverage type classes in Haskell to define
+the rest of the langauge on top of that.  It would be interesting to see
 whether such an approach scales to dependently-typed embedded
 languages.
 
@@ -48,39 +54,49 @@ languages.
 
 
 \paragraph{Extraction}
-The Coq proof assistant is equipped with
-extraction~\cite{10.1007/978-3-540-69407-6_39}
-capabilites~\cite{10.1007/3-540-39185-1_12}, allowing to turn
-a Coq proof (or program) into a functional language.  The default
-backend is Ocaml, but a few other options were added recently.
-The main difference from the approach that we are advocating in
-this paper is that extractors are written as plugins to proof
-assistant.  While it would be possible to implement extractors
-presented in this paper as Coq plugins, conceptually they are
-more heavyweight.  Our extractors and programs can (in principle)
-communicate with each other.  As extractor is just an Agda
-program it can be reflected an its structure can be leveraged.
+The Coq proof assistant is equipped with extraction
+capabilites~\cite{10.1007/978-3-540-69407-6_39,10.1007/3-540-39185-1_12},
+which extracts functional code from Coq proofs (or programs).  The
+default target language is Ocaml, but a few other options were added
+recently.
+%
+Likewise, Agda itself has a mechanism for defining custom backends, of
+which the GHC backend is the most prominent.
+%
+Other proof assistants provide similar extraction tools as well.
+%
+The main difference from our approach in this paper
+is that these extractors are written as a plugins to the proof
+assistant, while we implement our extractors directly in the proof
+assistant itself.
+%
+While it would be possible to implement extractors presented in this
+paper as Coq plugins or Agda backends, conceptually they are more
+heavyweight.  Our extractors and programs can (in principle)
+communicate with each other. In addition, as they are just Agda programs, they can
+be reflected themselves and their structure can be leveraged.
 
 
-\paragraph{Dependent Metaprogramming}
-A number of dependently-typed languages have metaprogramming
+\paragraph{Dependently typed metaprogramming}
+Several dependently-typed languages are equipped with metaprogramming
 capabilities: Idris~\cite{idris-refl}, Lean~\cite{lean-refl},
-Coq~\cite{metacoq}, and Agda~\cite{agda-refl}.  All of the above
+Coq~\cite{metacoq}, and Agda~\cite{agda-refl}.  All of these
 implement a similar API as described in this paper.  This is
-reassuring, as the proposed approach is immediately portable
+reassuring, as it means our proposed approach is immediately portable
 into many other contexts.
-In~\cite{10.1145/3371071} the Turnstile+ dependent language
-is introduced that focuses on embedding DSLs and very much
+\citet{10.1145/3371071} introduce the Turnstile+ framework for
+building dependently typed embedded DSLs and very much
 shares the ideas advocated in this paper, suggesting that
 our approach could work there as well.
-In~\cite{10.1145/3371076} authors use MetaCoq to formally verify
+\citet{10.1145/3371076} use MetaCoq to formally verify
 the core type system of Coq. This combines very nicely with
 our approach, as we could use the verified core language
 as a basis to verify our custom extractors.
-In~\cite{10.1145/3372885.3373829} use MetaCoq to implement
-a DSL combining deep and shallow approaches, and suggesting
-a way to reason about preservation of semantics.  It is unclear
-whether we could repeat the same for dependently-typed embeddings.
+\citet{10.1145/3372885.3373829} use MetaCoq to implement
+a DSL combining deep and shallow approaches, in a way that
+is quite similar to our own. While they are able to formally
+reason about preservation of semantics (which we can't do yet), it is unclear
+whether their approach scales to dependently-typed embedded languages.
 
 \paragraph{Arrays}
 Using dependent types to verify properties of array programms
@@ -100,7 +116,7 @@ the integration happens very smoothly without requiring
 any extraction techniques.
 
 
-% 
+%
 % \begin{enumerate}
 % \item Chapman, McBride, etc, on deep embedding within dependently-typed
 %   languages
@@ -108,11 +124,11 @@ any extraction techniques.
 % \item Metaprogramming, MetaOcaml
 % \item Template metaprogramming?
 % \end{enumerate}
-% 
-% 
+%
+%
 % \todo[inline]{We should probably get rid of the text below
 %   for the sake of space saving.}
-% 
+%
 % In a dependently-typed language such restrictions can be achieved by
 % constructing a universe.  The strength of restrictions presents us an
 % entire spectrum ranging from weak to strong.  Let us demonstrate a
@@ -130,7 +146,7 @@ any extraction techniques.
 %   open import Data.String using (length)
 %   open import Data.Bool hiding (_<_)
 %   open import Function
-% 
+%
 %   postulate
 %     ⋯ : ∀ {a}{A : Set a} → A
 % \end{code}
@@ -142,7 +158,7 @@ any extraction techniques.
 %     nat   : Ty
 %     fin   : ⟦ nat ⟧ → Ty
 %     eq lt : (a b : ⟦ nat ⟧) → Ty
-% 
+%
 %   ⟦ nat ⟧    = ℕ
 %   ⟦ fin x ⟧  = Fin x
 %   ⟦ eq a b ⟧ = a ≡ b
@@ -155,11 +171,11 @@ any extraction techniques.
 %   data n-σ : Set where
 %     ⟨_⟩   : Ty → n-σ
 %     _▹_ : (τ : Ty) → (⟦ τ ⟧ → n-σ) → n-σ
-% 
+%
 %   I : n-σ → Set
 %   I ⟨ τ ⟩   = ⟦ τ ⟧
 %   I (τ ▹ P) = (t : ⟦ τ ⟧) → I (P t)
-% 
+%
 %   ex₁ : I $ nat ▹ λ m → nat ▹ λ n → lt m n ▹ λ m<n → ⟨ fin n ⟩
 % \end{code}
 % }
@@ -172,7 +188,7 @@ any extraction techniques.
 % \AD{Ty}s, (a tuple where elements on the right may depend on all the
 % previous elements) and its interpretation \AF{I} into dependent function
 % space.
-% 
+%
 % Given that \AD{n-σ} contains only interpretations of valid types, it
 % might seem that functions of type \AD{I e} guarantee correct extraction.
 % Unfortunately it does not.  We still have the problem demonstrated in \AF{ex}
@@ -185,7 +201,7 @@ any extraction techniques.
 % The argument to \AC{fin} is an unrestricted term, therefore we can write
 % \AC{fin} \AF{ex} \AB{n} in \AF{ex₂}. The \AC{\_▹\_} constructor of \AD{n-σ} uses
 % unrestricted lambdas to bind variables, therefore \AF{ex₃}.
-% 
+%
 % Many approaches show~\cite{} how further restrictions can be added to the
 % terms, which essentially brings forces us to define deep embedding.  The
 % problem with these approaches is that the encoding becomes very non-trivial
