@@ -1,49 +1,43 @@
 \section{\label{sec:concl}Conclusions and Future Work}
 
 
-In this paper we investigate the notion of extraction.  This
-is the ability to express programs hand-in-hand with custom
-code generators for them.  We have demonstrated that
-compile-time metaprogramming is sufficient to equip
-a programming language with extraction capabilities.
-A well-known conundrum of choosing between deep and
-shallow embedding can be resolved if the host language
-is extraction-capable.  While enjoying the benefits
-of shallow embedding, there is a full access to the internal
+In this paper we investigate the idea of developing
+embedded programs hand-in-hand with custom
+code generators for them. We solve the well-known
+conundrum of choosing between deep and shallow
+embedding by leveraging the power of
+reflection.
+This allows us to enjoying the benefits
+of shallow embedding, while keeping full access to the internal
 structure of the embedded programs.
 
-We use this idea in the context of dependently-typed
+We apply this idea in the context of dependently-typed
 languages to create verified implementations that can
 be used in the context of an existing programming language.
-We embed a language of interest in a theorem-prover, using
+We embed the target language in a theorem-prover, using
 dependent types to encode the properties of interest.
-Using extraction we bring the verified implementation
+Using reflection we bring the verified implementation
 back into the original language.
 
 We have demonstrated the approach by implementing
-three embedded languages and two extractors using
-Agda as our host.  We have demonstrated the
-changes to Agda that we had to do on the way, and we
+three embedded languages and two extractors, using
+Agda as our host. Along the way we made some
+improvements to the reflection API of Agda, and in the end we
 used our embedding to implement (and verify) a practical
 application --- a convolutional neural network.
 
-The main advantages are twofold.  First,
-our solution is fine-grain --- we can chose what part
+The main advantages of our approach are twofold.  First,
+our solution is fine-grained --- we can chose what part
 of the application to embed, and what constructs of the
-host language to extract.  Secondly, extractors
-can use the full power of dependent types guaranteeing
-some safety properties of interest.
+host language to extract.  Secondly, our extractors
+can use the full power of dependent types to guarantee
+safety of our embedded programs.
 
-In order to make the proposed idea even more powerful,
-we would require improvements to metaprogramming capabilities
-of theorem provers.
-
-Most importantly, right now it is not guaranteed that the
+Right now we cannot yet guarantee that the
 extracted code preservers the semantics of the original
-implementation.  Essentially, one has to trust that the
-extractor is doing the right job.  While we rarely see
-fully-verified compiler backends in the real world, in
-the proposed environment we are very close to enabling this.
+implementation. While we rarely see
+fully-verified compiler backends in the real world,
+our approach is very close to enabling this.
 We would need a formal semantics of the reflected language
 and the proof that reflected programs respect it.
 While this is non-trivial, a system like Agda could do
@@ -51,21 +45,20 @@ this in principle.
 
 There is a number of improvements that can be added to
 Agda and our extractors to make the resulting code more
-efficient.  Supporting `let's in the internal syntax
+efficient.  Supporting \AK{let}s in the internal syntax
 would help to preserve sharing.  Recognising irrelevance
 annotations in the extractors would help to eliminate
 unused function arguments.  Introducing proper language
 primitives to specify what exactly is an embedding would
-be helpful.
-
-\todo[inline]{Mention improving performance, mention the we
-  can extract agda in agda and do some jitting}
+be helpful. And finally, having access to more of
+Agda's internals such as case trees would help to
+generate more performant code.
 
 Overall, this work only scratches the surface of extraction-based
 compilation.  We never considered alternative theories supported
 by theorem provers, \eg{} cubical type theory in Agda; we did not
 consider recursive metaprogramming; we did not consider integrating
-optimisations of extracted programs besides of what rewriting rules
+optimisations of extracted programs other than what rewriting rules
 are capable to do.  All of these offer exciting research opportunities
 on the way to make verified software easily accessible.
 To paraphrase Jim Morrison: ``Safety and no surprise, The End''.
