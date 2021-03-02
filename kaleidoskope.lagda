@@ -1029,7 +1029,9 @@ module KompTerm where
 We demonstrate three representative clauses of the term extracting function.
 First, we turn \AD{SKS} and \AD{Err} into monads by defining their bind and
 return actions.  As each monad is an applicative functor, we get \AF{\_<\$>\_}
-and \AF{\_⊛\_} operations for free.  The instance resolution mechanism~\cite{}
+and \AF{\_⊛\_} operations for free.  The instance resolution
+mechanism\footnote{For the details see the ``Instance Arguments''
+  section of Agda's manual~\cite{agda}.}
 makes it possible to overload monadic/functorial operations without explicitly
 mentioning in which monad we are operating.
 
@@ -1238,7 +1240,7 @@ $\beta$-reduction sequence.  In the context of extraction, such terms
 make the extracted code less efficient.
 
 Fortunately, Agda makes it possible to work around this
-problem with rewrite rules~\cite{}. Any binary
+problem with rewrite rules~\cite{DBLP:conf/types/Cockx19}. Any binary
 relation can be registered as a source of rewrites.  Propositional equality
 \AF{\_≡\_} is typically a good choice.  Functions that return such a relation
 can be registered as rewrite rules.  For example:
@@ -1328,7 +1330,7 @@ systems we can selectively turn properties into optimisations.
 % cause an infinite sequence of rewrites.
 
 One danger with rewrite rules is that we can get different result depending on the order of rule application.
-The recently introduced confluence checker~\cite{}
+The recently introduced confluence checker~\cite{10.1145/3434341}
 helps to prevent this problem.  When it is turned on, it will report
 when the registered set of rewrite rules is not
 confluent.  For example, in case of \AF{plus-0} rule, the confluence checker
