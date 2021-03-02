@@ -7,7 +7,7 @@ module Basics where
 \section{Background}
 We start with a brief overview of key Agda constructions that
 are used in this paper.  We also present relevant parts of the
-reflection API.  For further introduction to Agda refer
+reflection API.  For a more in-depth introduction to Agda refer
 to~\cite{10.1007/978-3-642-03359-9_6}.
 
 \subsection{Agda Basics}
@@ -47,7 +47,7 @@ disambiguated from the typing context, or can be prefixed with the
 type name: \AC{ℕ.zero}, \AC{ℕ.suc}.
 %
 The \AD{Fin} \AB{n} type represents natural numbers that are bounded
-by \AB{n}.  In the definition of \AD{Fin}, \AS{∀} binds the variable
+by \AB{n}.  In the definition of \AD{Fin}, ∀ binds the variable
 without needing to specify its type.  Braces indicate hidden
 arguments, which can be left out at function applications: we have
 \AC{suc} \AC{zero}~:~\AD{Fin} \AN{3}, assuming that Agda can infer a
@@ -62,8 +62,10 @@ underscores in the name indicate placeholders for the arguments.
 %
 \AF{Set} is the name of the type of all small types.  Sets form a
 predicative hierarchy, meaning that \AF{Set} \AB{i} is of type
-\AF{Set} (\AC{suc} \AB{i}), and \AF{Set} is a synonym for \AF{Set}
-\AN{0}.
+\AF{Set} (\AC{ℓsuc} \AB{i}), and \AF{Set} is a synonym for \AF{Set}
+\AN{ℓzero}.  The \AC{ℓsuc} and \AC{ℓzero} are the same as \AC{suc} and
+\AC{zero} but for type \AD{Level}.
+
 
 Functions are defined in a pattern-matching style:
 \begin{code}[hide]
