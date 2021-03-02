@@ -34,13 +34,10 @@ and demonstrate Agda code snippets of the actual extractor for Kaleidoscope.
 
 \subsection{Framework Overview}
 
-The extraction process can be naturally split into a
-language-dependent and a language-independent part. In our
-implementation, this is reflected by a separation into a reusable
-module that can be reused for implementing any extractor, and a
-language-dependent part that depends on this module. We refer to the
-language-independent module as the ``framework'' and we explain its
-structure here.
+The extraction process naturally splits into a language-dependent and
+a language-independent part. We start by explaining the reusable
+language-independent module, which we refer to the as the
+``framework''.
 %
 The entry point of the framework is a parametrised module \AM{Extract} that
 contains a single macro called \AF{kompile}:
@@ -63,17 +60,17 @@ module ExtrMod where
 \begin{code}[hide]
                                 quoteTC 42 >>= unify hole
 \end{code}
-The \AF{kompile-fun} parameter is a language-specific function that
-whose role is to compile a single Agda function.  It takes as input a
-representation of an Agda function with given type, body and name.
+The \AB{kompile-fun} parameter is a language-specific function
+specifying how to compile a single Agda function, given by
+its type, body and name.
 %
-It operates within the \AF{SKS} state monad and returns either a
-representation of the extracted function in the target language in
-case extraction succeeded, or an error message, as specified by the
-\AD{Prog} type.  During the extraction process, the \AF{kompile-fun}
-can use the state of \AD{SKS} monad to register other functions that
-should also be extracted.
-
+It operates within the \AF{SKS} state monad, which it can use to
+register other functions that should also be extracted, and returns
+either a representation of the extracted function in the target
+language in case extraction succeeded, or an error message, as
+specified by the \AD{Prog} type.
+%
+%
 \begin{mathpar}
 \codeblock{
 \begin{code}
@@ -91,67 +88,60 @@ module ExtrStructMod where
 \end{code}
 \begin{code}
   SKS : Set → Set    -- State Monad (KS)
-\end{code}
-\begin{code}[hide]
-  SKS = ⋯
-\end{code}
-\begin{code}
   TC  : Set → Set    -- TypeChecking Monad
   Prog = Err String  -- String or Error
 \end{code}
 }
 \end{mathpar}
 \begin{code}[hide]
+  SKS = ⋯
   TC = ⋯
 \end{code}
 
-Assuming an implementation of \AF{kompile-fun} for Kaleidoskope is located
-in the module \AM{Kaleid} here is a basic usage of the framework:
+Assuming \AF{kompile-fun} is defined
+in the module \AM{Kaleid} here is how to instantiate the framework:
 \begin{code}
   open Extract (Kaleid.kompile-fun)
   foo : ℕ → ℕ ; foo = ⋯ ; base-functions = ⋯ ; skip-functions = ⋯
   extracted = kompile foo base-functions skip-functions
 \end{code}
 The first argument to the \AF{kompile} macro is the name of the main
-function that we want to extract, in this case \AB{foo}. The second
+function that we want to extract, in this case \AF{foo}. The second
 and the third parameters of \AF{kompile} are lists of names that
 control function inlining in the extracted terms and traversal into
-the definitions found in the call graph.  We explain these arguments
-after introducing Kaleidoscope. When it is called, the \AF{kompile}
-macro obtains the normalized type and body of the main function, runs
-\AF{kompile-fun} for the actual extraction and recursively extracts
+the definitions found in the call graph (explained later).
+The \AF{kompile}
+macro will obtain the normalized type and body of the main function, run
+\AF{kompile-fun} for the actual extraction and recursively extract
 any functions that have been registered for extraction during the
 processing of \AF{foo}.
 
-To avoid repeated extraction of the same function, the \AF{kompile}
-keeps track of already visited functions and only recurses into
-functions it has not already visited.%
-\footnote{We had to explicitly mark the traversal of the call graph as
-  terminating function as termination checker could not verify
-  this. Unfortunately, the reflection API of Agda currently does not
+To avoid repeated extraction of the same function, \AF{kompile}
+keeps track of already compiled functions.%
+\footnote{We had to postulate termination of this traversal as
+  since the reflection API of Agda currently does not
   provide the guarantee that there is only a finite number of function
-  symbols. Hence it is not possible to eliminate this annotation with
-  the current version of Agda.}.
-Finally, after all required functions have been compiled, the bodies
-of all the extracted functions are concatenated together and are
+  symbols.}
+After all required functions have been compiled, the bodies
+of all extracted functions are concatenated and
 returned as the result of extraction.
 
 
 
 \subsection{Kaleidoscope}
-We borrow the example of the Kaleidoskope language from the tutorial~\cite{kaleidoscope} on
-building frontends to LLVM~\cite{llvm}.  This is a minimalist first order
-language with only one data type, the type of natural numbers\footnote{The original
-version of Kaleidoscope used floats, but in the context of Agda it is easier to
-use natural numbers as we can prove more properties of them.},
-with support for the basic arithmetic operations and comparisons. Following C convention, boolean values
-are encoded as numbers where `zero' means false, and any other value means
-true.  Function calls and conditionals operate as usual, and `let' constructs
-make it possible
+We borrow the Kaleidoscope example language from the tutorial on
+building frontends to LLVM~\cite{kaleidoscope}. Kaleidoscope is a minimalist first-order
+language with a single data type, the type of natural numbers\footnote{The original
+version of Kaleidoscope used floats, but natural numbers are easier in the context of Agda
+as we can prove more properties of them.},
+with basic arithmetic operations and comparisons. Following C convention, boolean values
+are encoded as numbers where 0 is false, and any other value is
+true.  Function calls and conditionals operate as usual, and `let'
+makes it possible
 to bind immutable values to variables.  We extend Kaleidoscope with a one-argument \AF{assert}
 operator that terminates the program if its argument evaluates to zero.
 Functions are defined by giving a name, a list of arguments and the
-expression for its body.  A declaration of an external function is given by a name and a list of its
+expression for its body.  External functions are defined by giving a name and a list of its
 arguments. We encode Kaleidoskope's AST as follows:
 
 \begin{code}[hide]
@@ -195,20 +185,19 @@ module Kaleid where
 \end{mathpar}
 
 \subsection{A shallow embedding of Kaleidoscope in Agda}
-In order to extract a Kaleidoscope program from an Agda program,
-we first need to identify what subset of the
-host language can be sensibly translated to Kaleidoscope.
+To extract a Kaleidoscope program from an Agda program,
+we first need to identify what subset of Agda can be sensibly translated to Kaleidoscope.
 Let us start with the types. First, we need the natural
-number type \AD{ℕ} as it is the main data type of Kaleidoscope. In order to
+number type \AD{ℕ} as it is the main data type of Kaleidoscope. To
 describe invariants we also support the type  \AD{Fin n} of natural number
 strictly less than \AD{n}, as well as the identity type
 \AD{\_≡\_} and the inequality type \AD{\_<\_} on natural numbers.
-The \AD{Fin n} type is mapped to numbers in the target language, while
-all primitive proofs of \AD{\_≡\_} and \AD{\_<\_} are mapped to the constant \AS{1}.
-In addition, as the last two relations are decidable on \AD{ℕ}, we also allow proof-relevant
-booleans \AD{Dec (a ≡ b)} and \AD{Dec (a < b)}. They carry a boolean
-value and the proof that the relation holds or does not hold for the chosen arguments,
-depending on whether the boolean is \AC{true} or \AC{false}.
+The \AD{Fin} type is mapped to numbers in the target language, while
+all proofs of \AD{\_≡\_} and \AD{\_<\_} are mapped to the constant \AS{1}.
+We also allow the decidability predicates
+\AD{Dec (a ≡ b)} and \AD{Dec (a < b)}, which carry a boolean
+value and a proof that the relation holds or does not hold,
+depending on the value of the boolean.
 We map \AC{true} to \AS{1} and \AC{false} to \AS{0}, ignoring the proof. First order
 functions of the above types such as basic arithmetic \AD{\_+\_}, \AD{\_-\_},\ldots
 are mapped to corresponding functions in the target language.
@@ -230,28 +219,25 @@ where \AF{showNat} returns a string representation of
 the given number.  Neither \AF{length} nor \AF{showNat}
 are representable in Kaleidoscope, as there is no notion of strings
 in the language.
-
-At this point we can ask ourselves how we could restrict
-further and pin down precisely what fragment of Agda we can extract.
-To go this route, we would have to restrict what
+%
+In order to pin down precisely what fragment of Agda we can extract,
+we would have to restrict what
 types are allowed in embedded functions and what terms can appear
-in function bodies. Essentially, we have to leave the world of
-shallow embeddings and switch to deep embeddings.
+in function bodies, taking us away from the world of
+shallow embeddings and into the world of deep embeddings.
+%
+While it is certainly possible to define strongly typed deep
+embeddings in a dependently typed host language, all current solutions
+are very heavyweight when one has to deal with an embedded language
+that uses dependent types, as we do here (recall that we allow
+\AF{\_<\_}, \AF{\_≡\_}, \etc{}). In particular, one needs to encode
+not only types and terms of the embedded language, but also contexts
+and explicit substutions, turning even the simplest programs into
+large and non-trivial terms. It is still an open question whether
+there exists a satisfying middle ground between shallow and
+deep embedding (see Section~\ref{sec:related} for related work in
+this direction).
 
-Previous work~\cite{} has shown that it is possible to define
-strongly typed deep embeddings in a dependently typed host language,
-and thus enforce both of the above restrictions while keeping
-strong guarantees on the correctness of extracted code. However, for
-embedded language that use dependent types, as in our case (recall that
-we allow \AF{\_<\_}, \AF{\_≡\_}, \etc{}), all currently existing solutions become
-very heavyweight. In particular, one needs to encode not only types and
-terms of the embedded language, but also contexts and explicit substutions,
-turning even the simplest programs into large and non-trivial terms.
-
-The question whether there is a satisfying middle ground between shallow and
-deep embedding is still generally
-open.  We explore in more details why straight-forward constructions like
-type universes are only of a limited use in Section~\ref{sec:related}.
 Our solution in this paper is to avoid the encoding problem entirely
 and rely instead on metaprogramming to extract a subset of Agda into
 our target language.  An Agda term is defined to belong to the
@@ -265,40 +251,36 @@ embedding if the extractor does not fail on it.
 
 
 \subsection{Normalisation}
-Use of unrestricted terms give us an important benefit: we may use any host
+Working with a shallow embedding gives us an important benefit: we may use any host
 language constructs that are not present in the embedding, as long as they can
 be eliminated prior to extraction.  For example, the target language may not
-have the notion of polymorphic or higher-order functions, yet we could write
+support polymorphic or higher-order functions, yet we could write
 programs such as:
-\begin{code}[hide]
+\begin{mathpar}
+\codeblock{\begin{code}[hide]
 module NormMod where
   open import Data.String using (length)
   open import Data.Product
   open import Data.Nat as ℕ hiding (_≟_)
 \end{code}
 \begin{code}
-  ex : (n : ℕ) → n < length "999" → ℕ ; ex = ⋯
+  ex : (n : ℕ) → n < length "999" → ℕ
+  ex = ⋯
+\end{code}}
+\and
+\codeblock{\begin{code}
   fib : (k m n : ℕ) → ℕ
   fib 0        m n  = m
-  fib (suc k)  m n  = let m' , n' = n , m + n in fib k m' n'
-\end{code}
+  fib (suc k)  m n  = let  m' , n' = n , m + n
+                      in   fib k m' n'
+\end{code}}
+\end{mathpar}
 In the type of \AF{ex}, \AF{length} is a function from \AD{String} to \AD{ℕ}, but
 it is applied to a constant string.  In the second clause of \AF{fib} we
 create a tuple (\AB{n} \AC{,} \AB{m} \AF{+} \AB{n})
-and immediately destruct it via pattern matching. Note that \AC{\_,\_}
-is a polymorphic constructor of the dependent sum type \AF{Σ}:
-\begin{code}[hide]
-module SigMod where
-  record Σ (A : Set) (B : A → Set) : Set where
-    --constructor _,_
-    field
-      fst : A
-      snd : B fst
-\end{code}
-\begin{code}
-  _,_ : ∀ {A : Set} → {B : A → Set} → (a : A) → B a → Σ A B ; _,_ = ⋯
-\end{code}
-Therefore, neither \AF{length} nor \AF{\_,\_} can be part of the final
+and immediately destruct it via pattern matching. Note that Kaleidoscope
+supports neither strings nor tuples, soneither \AF{length} nor \AF{\_,\_}
+can be part of the final
 extracted Kaleidoscope code.
 %The same holds for the universe of types, which we
 %could still use as a convention:
@@ -306,7 +288,7 @@ extracted Kaleidoscope code.
 %  saturated-add : I $ nat ▹ λ max → fin max ▹ λ a → fin max ▹ λ b → ⟨ fin max ⟩ ; saturated-add = ⋯
 %\end{code}
 However, if we simplify the terms, the result no longer contains any
-about strings, pairs or universes, and hence can be extracted safely.
+about strings or tuples, and hence can be extracted safely.
 
 
 Such a simplification can be conveniently achieved by
@@ -314,7 +296,7 @@ normalising the terms, i.e.~by applying reduction rules to (sub)terms until
 they turn into values or neutral terms.
 %
 %\subsubsection{Telescopes}
-Agda's reflection API offers a function \AF{normalise} for normalizing a term.
+Agda's reflection API offers a function \AF{normalise} for this purpose.
 However, this will only normalize the term itself and not the body of
 functions used in this term.
 %
@@ -325,6 +307,17 @@ To work around this limitation, we also recursively traverse the
 definition of each function used in the term and normalise all terms
 in their bodies.
 
+During the implementation of this traversal, we were faced with
+the challenge of reconstructing the right typing context for each clause.
+Agda constructs this context internally during elaboration of the clauses,
+but the reflection API did not provide access to it. Rather than going
+through the painful and error-prone process of reconstructing this
+context, we instead extended the reflection API to provide it for us
+(see \url{https://github.com/agda/agda/pull/4722} for the full story).
+Thanks to this change, it is straightforward to normalise the right-hand
+side of each clause in a function definition.
+
+\begin{comment}
 In order to normalise the right-hand side of a clause in a function definition,
 we need to provide the right context with the types of the pattern
 variables of that clause, which is non-trivial to reconstruct.
@@ -384,12 +377,13 @@ of the given clause.  Given \AC{clause} \AB{ctx} \AB{pat} \AB{t}, we may
 run \AF{inContext} \AB{ctx} (\AF{normalise} \AB{t}) to normalise the body.
 %Such a call is performed by \AF{kompile} function for every
 %extracted function.
-
+\end{comment}
 
 \subsection{Controlling Reduction}
 
-In some cases fully normalising a term can lead to undesirable results.
-For example, consider the following program:
+
+Fully normalising a term sometimes leads to undesirable results.
+Consider the following program:
 \begin{code}[hide]
 module RedMod where
   open import Relation.Nullary
@@ -414,56 +408,59 @@ module RedMod2 where
     ≡⇒≡ᵇ : ∀ m n → m ≡ n → T (m ≡ᵇ n)
     T? : ∀ x → Dec (T x)
   _≟_ : Decidable {A = ℕ} _≡_
+  map′ : ∀ {P Q : Set} → (P → Q) → (Q → P) → Dec P → Dec Q ; map′ = ⋯
 \end{code}
 \begin{code}
-  map′ : ∀ {P Q : Set} → (P → Q) → (Q → P) → Dec P → Dec Q ; map′ = ⋯
   m ≟ n = map′ (≡ᵇ⇒≡ m n) (≡⇒≡ᵇ m n) (T? (m ≡ᵇ n))
 \end{code}
-(the details of how \AF{map′} is defined are not relevant here).
-These four functions in the body (\eg{} \AF{map′}, \AF{≡ᵇ⇒≡}, \etc{}) are not
+%(the details of how \AF{map′} is defined are not relevant here).
+The four functions used in the body (\eg{} \AF{map′}, \AF{≡ᵇ⇒≡}, \etc{}) are not
 representable in Kaleidoscope, but comparison of natural numbers is.
-Generally,
-there is a common pattern where some target language
-definitions are represented in Agda in a radically different way than in the target language.
-A typical reason for this is proof relevance, like in the above case, but could also be a general
-invariant that we attach to objects.  In such cases, we might decide
-to hard-code the mapping of the Agda function to the target language function.
-For example, in this case we map \AF{\_≟\_} to \AC{Eq}.
+%
+More generally, there is a common pattern where the host language
+represents a concept in a radically different way than in the target
+language.
+%A typical reason for this is proof relevance, like in the above case, but could also be a general
+%invariant that we attach to objects.
+In such cases, we can customize the extractor by hard-coding the
+mapping of the Agda function to the target language function.  For
+example, in this case we map \AF{\_≟\_} to \AC{Eq}.
 
 In order to do this, we have to make sure that normalisation does not expand
 certain definitions.  This is what the second argument (base) to our interface
 function \AF{kompile} is used for --- to specify the list of functions that
 must not reduce during normalisation.
-
+%
 This functionality was not previously available in Agda, so we added two new primitives
 to the reflection API --- \AF{dontReduceDefs} and \AF{onlyReduceDefs} with pull
-request \url{https://github.com/agda/agda/pull/4978}.  The functions have the following
-types:
-\begin{code}[hide]
-module Funs where
-  open import Reflection using (Name; TC)
-\end{code}
-\begin{code}
-  onlyReduceDefs : ∀ {a} {A : Set a} → List Name → TC A → TC A ; onlyReduceDefs = ⋯
-  dontReduceDefs : ∀ {a} {A : Set a} → List Name → TC A → TC A ; dontReduceDefs = ⋯
-\end{code}
-They give us an environment in which any call to \AF{reduce} or \AD{normalise}
-would respect the list of function names given in the first argument.  In case of
-\AF{onlyReduceDefs} function application would reduce only if the function is
-found in the list.  In case of \AF{dontReduceDefs}, function application would
-reduce only if the function is not on the list.  When we normalise the code prior
-extraction we call \AF{dontReduceDefs} \AB{base} \AF{\$} \AF{normalise} \AB{t},
-where \AB{t} is either the type or the term.
+request \url{https://github.com/agda/agda/pull/4978}.
+%The functions have the following
+%types:
+%\begin{code}[hide]
+%module Funs where
+%  open import Reflection using (Name; TC)
+%\end{code}
+%\begin{code}
+%  onlyReduceDefs : ∀ {a} {A : Set a} → List Name → TC A → TC A ; onlyReduceDefs = ⋯
+%  dontReduceDefs : ∀ {a} {A : Set a} → List Name → TC A → TC A ; dontReduceDefs = ⋯
+%\end{code}
+These functions give us an environment in which any call to
+\AF{reduce} or \AD{normalise} will avoid reducing any function that is
+in the list (for \AF{dontReduceDefs}) or not in the list (for
+\AF{onlyReduceDefs}).
+%
+This new feature is used by the \AF{kompile} macro to avoid reducing
+functions for which we have a fixed translation in the target language.
 
 % \todo[inline]{Here we explain what is the meaning of the arguments
 % to kompile, and that we had to extend Agda in order to make this happen}
 
-\subsection{\label{sec:maptypes}Mapping Agda Types to Kaleidoscope}
+\subsection{\label{sec:maptypes}Mapping Agda Types to Kaleidoscope Assertions}
 
 The next step after normalisation is to verify and translate the type
 signature of the embedded function into the target language.  Kaleidoscope
-does not have the actual type annotations within the language, but we
-still need to verify that: a) the function is first-order; b) the
+does not support type annotations, but we
+still need to verify that the function is first-order, and that the
 argument and return types are from the right universe.
 This is implemented in the \AF{kompile-ty} function, of which we present a
 small fragment here:
@@ -504,8 +501,8 @@ module KompTy where
   kompile-ty : Type → (pi-ok : Bool) → SPS (Err ⊤)
   kompile-ty (def (quote ℕ) args) _ = return $ ok tt
   kompile-ty (def (quote Fin) (arg _ x ∷ [])) _ = do
-    ok p ← sps-kompile-term x where error x → ke x
-    v ← PS.cur <$> get
+    ok p  ← sps-kompile-term x where error x → ke x
+    v     ← PS.cur <$> get
     modify $ _p+=a (mk v (BinOp Lt (Var v) p))
     return $ ok tt
   kompile-ty _ _ = ⋯
@@ -513,13 +510,17 @@ module KompTy where
 It operates within the state monad \AD{SPS} where the state is given
 by the type \AD{PS} (pi-type state).  As we traverse the type signature
 of a function, for non-dependent types such as \AD{ℕ} we only verify
-whether the type is supported.  This is happening in the first clause
-of \AF{kompile-ty} from above.  For dependent types we have to do a bit
-more work.
+whether the type is supported.
 
-Recall that per our assumption dependent types are inexpressible in
-the target language, yet information that they encode may be important
-to preserve for the following two reasons.  First, the toolchain can
+Dependent types such as \AD{Fin} can be seen as encoding some
+predicate on their arguments as well as the element of the dependent
+type itself.  We preserve this information encoded in them by mapping
+them to assertions in the target language, essentially trading static
+checks for dynamic ones.
+%
+Preserving this information is is important for two reasons.
+%
+First, the toolchain can
 use this information for more aggressive optimisations.  For example,
 the Kaleidoscope expression \texttt{if a > b: x else: y} can be simplified
 to \texttt{x} if we know from the types that \texttt{a} is greater than \texttt{b}.
@@ -532,24 +533,34 @@ the type system may not hold.  For example, given
 \end{code}
 \begin{code}[hide]
   f = ⋯
-\end{code}, its first argument must not be zero.  This property would be
-respected in any uses of \AF{f} within Agda.  However, as \AB{x} \AF{>}
+\end{code}, its first argument must not be zero.  However, as \AB{x} \AF{>}
 \AS{0} cannot be represented, external calls may pass zero to
 the extracted version of \AF{f}.
 
-Both problems can be solved by turning dependent types into assertions,
-essentially trading static checks for dynamic ones.  Each dependent
-type can be can be thought of as a predicate that encodes some properties
-of the terms that appear in the type (as well as the element of the
-dependent type itself, in case it is proof-relevant). The translation scheme for extracting some
-dependent type $\AF{P} : \AF{I} → \AF{Set}$ looks as follows:
+In the case for \AF{Fin} in the definition of \AF{kompile-ty}, we
+first extract the argument \AB{x} (obtaining a Kaleidoscope
+expression).  Then we get the name of the function argument by
+referring to the \AR{PS.cur} field of the state.  Finally, we generate
+an assertion that checks whether the encoded witness is less than the
+argument to \AD{Fin} (the upper bound), and add it to the state.
+
+In general, to translate a dependent type $\AF{P} : \AF{I} →
+\AF{Set}$, we start by picking basic types \AD{TI} and \AD{TP} that
+encode \AD{I} and \AD{P}, together with encoding functions $\AF{enc-i}
+: \AD{I} → \AD{TI}$ and $\AF{enc-p} : ∀ \{i\} (p : \AD{P}\ i) →
+\AD{TP}$.  We then introduce a function $\AF{assrt-p} : (\AB{ti} :
+\AD{TI})(\AB{tp} : \AD{TP}) → \AD{Bool}$ that decides whether the
+encoded arguments \AB{ti} and \AB{tp} come from a valid input, that is
+whether \AB{tp} is the image under \AF{enc-p} of some $\AB{p} :
+\AD{P}\ i$ where \AB{ti} is the image of \AB{i}. Finally, we prove
+soundness and completeness of the encoding:
 \begin{code}[hide]
   I : Set ; TP : Set ; TI : Set
-\end{code}
-\begin{code}
   P : I → Set ; T : Set → Set -- T I ≡ TI ; T (P i) ≡ TP
   enc-i : I → TI ; enc-p : ∀ {i} (p : P i) → TP
   assrt-p : (ti : TI) (tp : TP) → Bool
+\end{code}
+\begin{code}
   sound-p : ∀ {i}{p : P i} → assrt-p (enc-i i) (enc-p p) ≡ true
   complete-p : ∀ ti tp → assrt-p ti tp ≡ true → ∃₂ λ i (p : P i) → ti ≡ enc-i i × tp ≡ enc-p p
 \end{code}
@@ -557,18 +568,7 @@ dependent type $\AF{P} : \AF{I} → \AF{Set}$ looks as follows:
   P = ⋯ ; I = ⋯ ; TI = ⋯ ; TP = ⋯ ; T = ⋯
   enc-i = ⋯ ; enc-p = ⋯ ; assrt-p = ⋯ ; sound-p = ⋯ ; complete-p = ⋯
 \end{code}
-The mapping \AD{T}
-chooses basic types \AD{TI} and \AD{TP} that encode \AD{I} and \AD{P}.
-Note that the
-encoding type $\AD{T} (\AD{P}\ i) = \AF{TP}$ does not depend on the argument $i$. The
-encoding function \AF{enc-i} translates elements of the base type \AD{I}
-to \AD{TI}, and \AF{enc-p} translates elements of type \AD{P} \AB{i}
-into the chosen encoding type \AD{TP}. Meanwhile, the assertion function
-\AD{assrt-p} decides whether the encoded arguments \AB{ti} and \AB{tp}
-come from a valid input, that is whether \AB{tp} is the image under \AF{enc-p} of some
-$\AB{p} : \AD{P}\ i$ where \AB{ti} is the image of \AB{i}.
-Soundness and completeness express that \AF{assrt-p} returns \AC{true} if and only if this
-is the case. Dependent types with multiple arguments can be
+Dependent types with multiple arguments can be
 treated in exactly the same way.
 
 
@@ -604,40 +604,28 @@ treated in exactly the same way.
 % function.  In this case, the encoding of the relation is the unit type,
 % and the decision procedure is translated to assertion.
 
-\AF{Fin} can be seen as a predicate on \AF{ℕ} where the witness is defined
-using two constructors: \AC{zero} and \AC{suc}.  Our encoding of the witness
-will be \AD{ℕ}, and the assertion procedure would check whether the
-encoded witness is less than the argument to \AD{Fin} (the upper bound).
-This is exactly what \AF{kompile-ty} does for the \AF{Fin} case.  We extract the
-argument \AB{x} (obtaining a Kaleidoscope expression), ensuring that extraction
-succeeds.  Then we get the name of the
-function argument by referring to the \AR{PS.cur} field of the state.  Finally,
-we modify the state by adding a constraint on the corresponding
-argument.
-
 Now, for decidable relations, we can entirely avoid encoding the proof
 object, as long as the computational behaviour of the function does not
 depend on the structure of the proof. This is in particular always the
-case for proof-irrelevant types.
-As \AD{\_≡\_} and \AD{\_<\_} are both decidable for natural numbers and proof-irrelevant,
-we encode the elements of types with the unit value (natural number \AS{1}).
+case for proof-irrelevant types such as \AD{\_≡\_} and \AD{\_<\_}.
+We encode the elements of these types with the unit value (natural number \AS{1}).
 We then generate an assertion that uses the decision procedure. This
 decision procedure returns an element of the \AD{Dec} type
 which we interpret as a boolean value: \AS{1} for \AC{yes} and 0 for \AC{no}.
-Pattern matching on the value of \AD{\_≡\_} is straight-forward as there
-is only one constructor.  Constructors of \AD{\_<\_}
-essentially encode the difference between the arguments, which we
-have chosen not to encode since it can be reconstructed easily.
+%Pattern matching on the value of \AD{\_≡\_} is straight-forward as there
+%is only one constructor.  Constructors of \AD{\_<\_}
+%essentially encode the difference between the arguments, which we
+%have chosen not to encode since it can be reconstructed easily.
 %Otherwise we were to lose information,  for example:
 %\begin{code}
 %  ex₆ : ∀ {a b} → a ℕ.< b → ℕ
 %  ex₆ (s≤s z≤n) = 1
 %  ex₆ (s≤s (s≤s a<b)) = 1 ℕ.+ ex₆ (s≤s a<b)
 %\end{code}
-As a consequence we are only allowed to pass the inequality around, but not
-``look inside'' the proof. A different extraction scheme that does not erase
-equality proofs is surely possible, but since we only use inequalities as
-a static assertion erasing them works well in our case.
+%As a consequence we are only allowed to pass the inequality around, but not
+%``look inside'' the proof. A different extraction scheme that does not erase
+%equality proofs is surely possible, but since we only use inequalities as
+%a static assertion erasing them works well in our case.
 
 If a function returns a value of a dependent type, we also generate an assertion
 using the same rules. We organise the body of the extracted function
@@ -655,17 +643,17 @@ module ExFin where
                                       --   let __ret_assrt = assert (__ret < 1 + x_1 * x_1)
                                       --   __ret
 \end{code}
-Let us walk through this example.  First, notice the
+First, note the
 assertion for the return value, which has been generated from the return
-type of \AF{ex₇}.  How did the body on the left turned into multiplication
-on the right?  Recall the types of \AF{fromℕ<} and \AF{n<1+n}:
+type of \AF{ex₇}. Next, recall the types of \AF{fromℕ<} and \AF{n<1+n}:
 \begin{code}[hide]
 module Signatures where
   open import Data.Fin using (Fin)
   open import Data.Nat as ℕ hiding (_≟_)
 \end{code}
 \begin{code}
-  fromℕ< : ∀ {m n} → m < n → Fin n ; n<1+n : ∀ n → n < 1 + n
+  fromℕ<  : ∀ {m n} → m < n → Fin n
+  n<1+n   : ∀ n → n < 1 + n
 \end{code}
 \begin{code}[hide]
   fromℕ< = ⋯
@@ -673,22 +661,19 @@ module Signatures where
 \end{code}
 The \AF{fromℕ<} function turns a proof of \AB{m} \AF{<} \AB{n} into an element of type
 \AF{Fin} \AB{n}.  As we are encoding \AF{Fin}s as natural numbers,
-the extracted version of \AF{fromℕ<} can just return the left-hand side of
-\AF{\_<\_}. Luckily, it is always possible to extract the type-level arguments
-of a dependent type such as \AF{\_<\_}:
-it is simply impossible to construct a proof of \AB{m} \AF{<} \AB{n}
-without also being able to construct \AB{m} and \AB{n}.
-In this particular case, the first hidden argument \AB{m}
-is the value that we are after. Hence the extracted version of \AF{fromℕ<} returns
-the first argument and ignores all
-the other arguments.  Note that by doing so we are not losing any information,
+the extracted version of \AF{fromℕ<} just returns the first argument of
+\AF{\_<\_}, which is the implicit argument \AB{m}.
+%
+Note that by doing so we are not losing any information,
 as the proof here is merely asserting that \AB{m} fits the specification.
-This ability to ignore runtime-irrelevant relations
-is insightful, as it helps to avoid a lot of unnecessary work
-and keeps the extracted code efficient.
+%
+In general, it is always possible to extract the type-level arguments
+of a dependent type such as \AF{\_<\_}, as long as we avoid using
+features that distinguish between type-level and term-level arguments
+such as parametricity or run-time irrelevance.
 
-It might seem that the assertion on the result is unneccessary here, since we are guaranteed that it is
-correct by construction. However, by inserting this assertion we can
+It might seem that the assertion on the result is unneccessary, since it is guaranteed to be satisfied
+by construction. However, by inserting this assertion we
 pass on information further down the toolchain, which may be used for example
 by the compiler of the target language to perform more optimizations.
 All these assertions may
