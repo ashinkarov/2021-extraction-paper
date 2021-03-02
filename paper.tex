@@ -267,7 +267,7 @@
   embedded programs.
   %
   Concretely, we apply this technique to embed three low-level
-  programming languages -- Kaleidoscope, SaC, and (a subset of) APL --
+  programming languages --- Kaleidoscope, SaC, and (a subset of) APL ---
   into the dependently typed theorem prover Agda, using dependent
   types to statically enforce several properties of interest.  We then
   use Agda's reflection capabilities to extract the embedded programs
@@ -280,7 +280,7 @@
   %
   Finally, we demonstrate the feasibility of our approach with the
   implementation and extraction of a convolutional neural network in
-  our embedding of APL.
+  our embedding of APL.\@
 
 %  Most practical programming languages of today prioriterise
 %  performance and usability over safety.  As a result, many
@@ -414,7 +414,8 @@ Our proposed approach has several advantages:
   %leveraged to share the host type system for typechecking target
   %programs.
   This works beautifully for target languages with simple
-  type systems, but the embedding gets impractically ugly~\cite{} in
+  type systems, but the embedding gets impractically 
+  ugly~\cite{10.1145/1863495.1863497} in
   case of dependently typed ones.  This matters because we use
   dependent types in the embedding to encode the properties of
   interest.  Shallow embeddings do not require any additional
@@ -450,7 +451,7 @@ array language that can generate efficient code for various architectures, but
 it has a restrictive type system.  Our SaC embedding guarantees
 program termination, in-bound array indexing, and safety of arithmetic operations.
 %
-Finally, we also embed a small subset of APL~\cite{} into Agda (Section~\ref{sec:apl}), which
+Finally, we also embed a small subset of APL~\cite{APL} into Agda (Section~\ref{sec:apl}), which
 is sufficient to encode a Convolutional Neural
 Network~\cite{cnninapl}.  Embedding APL is challenging because the
 language is untyped, and its basic operators are heavily overloaded.
@@ -471,7 +472,7 @@ The key contributions of this paper are:
             of datatype parameters.
     \item We implement extractors for two languages: Kaleidoscope
             and SaC.  We use the latter as a basis for embedding
-            a subset of APL.
+            a subset of APL.\@
     \item We demonstrate how the proposed embeddings can be used
             by encoding a real-world application and ensuring that
             it extracts correctly.
