@@ -19,7 +19,7 @@ module APL where
 \section{\label{sec:apl}APL and CNN}
 
 In this section we consider the embedding of an
-APL subset that is large enough to port the implementation~\cite{}
+APL subset that is large enough to port the implementation~\cite{cnninapl}
 of a convolutional neural network.  APL presents an interesting case
 for our approach as it because it introduces the notions that are
 difficult to express in Agda, and presumably any other existing theorem
