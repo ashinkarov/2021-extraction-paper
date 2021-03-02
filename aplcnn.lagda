@@ -19,15 +19,15 @@ module APL where
 \section{\label{sec:apl}APL and CNN}
 
 In this section we consider the embedding of an
-APL subset that is large enough to port the implementation~\cite{cnninapl}
-of a convolutional neural network.  APL presents an interesting case
+APL subset that is large enough to port the implementation
+of a convolutional neural network~\cite{cnninapl}.  APL presents an interesting case
 for our approach as it because it introduces the notions that are
 difficult to express in Agda, and presumably any other existing theorem
 prover.
 
 APL is a language that pioneered the concept of rank- and shape-polymorphic
 programming.  Expressions in APL are written in index-free combinator style
-with a very few syntactic rules.  The language is dynamically typed, and
+with very few syntactic rules.  The language is dynamically typed, and
 each combinator is an operation on (multi-dimensional) arrays.  Consider
 the following (valid) APL expression:
 \begin{flushleft}
@@ -45,47 +45,40 @@ the following (valid) APL expression:
 % }%
 % %\noindent{}
 that computes a two-point convolution of the array {\apl{a}} using cyclic
-boundaries.  This is done by 
+boundaries.  This is done by
 first rotating vectors along the last axis of {\apl{a}} one element to the
 left ({\apl{¯1 ⌽ a}}), then one element to the right
 ({\apl{1 ⌽ a}}), then adding these results element-wise
 ({\apl{+}}), and then dividing each element by two ({\apl{2 ÷⍨}}).
-The important point is
-that this expression is applicable to \apl{a} of \emph{any} rank, including
+APL expressions such as this one are applicable to \apl{a} of \emph{any} rank, including
 zero-dimensional arrays.
 Not only the initial set of APL combinators found very useful in practice,
-but it also gives rise to the number of universal equalities such as:
-\begin{flushleft}
-\qquad\apl{(-x) ⌽ x ⌽ a ≡ a}
-\end{flushleft}
-It says: if we first rotate vectors in the last axis of \apl{a}
+but it also gives rise to the number of universal equalities such as
+\qquad\apl{(-x) ⌽ x ⌽ a ≡ a}, which says: if we first rotate vectors in the last axis of \apl{a}
 \apl{x} elements in one direction and then rotate by \apl{x}
 elements in the opposite direction, we will always get back the same array.
 These universal equalities are based on simple
 arithmetic facts, yet they give a powerful reasoning technique and they can
-be used as rewrite rules when programs are automatically transformed.
+be used as rewrite rules for automatic program transformations.
 
 
 \subsection{Embedding}
-Besides the compact notation, and a syntactic conventions that all the
-operators are right-associative, semantics of each operator is heavily
-overloaded.  This means that the same symbol has different meanings
+The semantics of each APL operator is heavily
+overloaded: the same symbol has different meanings
 depending on how many arguments are being passed and what these arguments
 are, \ie{} their shapes, sign, \etc{}.  For example, consider the
-\apl{\/} (slash) symbol, which can be used as:
-\begin{table}[h!]
+\apl{/} (slash) symbol, which can be used in the following ways:
+\[
 \begin{tabular}{ll}
   \apl{ +/a    } & sum array elements, \apl{+} is an argument   \\
   \apl{2+/a    } & sum in groups of 2, \apl{+} and \apl{2} are arguments \\
   \apl{ 2/a    } & replicate each element 2 times \\
   \apl{ +/[k]a } & sum over the $k$-th axis, \apl{[k]} is an optional axis specification
 \end{tabular}
-\end{table}
-it can be seen, there are some optional arguments that can be omitted,
-and the first argument can be either a binary operation or an integer.
+\]
 
 While the embedding does not have to match the original syntax one-to-one,
-we are willing to preserve one behaviour of the operators
+we would like to preserve one behaviour of the operators
 that is used incredibly often --- the automatic cast between scalars,
 vectors, and multi-dimensional arrays.  In APL every object is an
 array, therefore vectors and scalars can be simply used as arguments
@@ -94,54 +87,56 @@ arrays themselves.  Replicating such a behaviour in Agda would lead
 to infinite recursion: we would have to index \AD{Ar} type with
 \AD{Ar}, which is not possible.  Furthermore, binary operations
 in APL have the following casting behaviour:
-\begin{table}[h!]
+\[
 \begin{tabular}{ll}
   \apl{1 2 3   + 1    } & computes to \apl{2 3 4} \\
   \apl{1       + 1 2 3} & computes to \apl{2 3 4} \\
   \apl{1 2 3   + 1 2 3} & computes to \apl{2 4 6} \\
   \apl{1 2 3 4 + 1 2 3} & runtime error
 \end{tabular}
-\end{table}
-if one of the arguments to the binary operation is a singleton array,
+\]
+If one of the arguments to the binary operation is a singleton array,
 it is automatically replicated to match the shape of the other element.
 
-\paragraph{Overloading Saga}
+%\paragraph{Overloading Saga}
 Normally, overloading in Agda is solved by using instance arguments.
 These are special kind of implicit arguments that are resolved using
-an instance resolution algorithm.  This achieves a similar effect as
-when using classes and instances in Haskell.  In our case, in order
-to implement singleton replication, we would have to define relation
-between the ranks and shapes of the arguments (and the result) of
-the binary operation.  We start with a binary relation \AD{dy-args}
-defined as follows:
+instance resolution, achieving a similar effect as
+classes and instances in Haskell.
+%
+In our case, we define a binary relation \AD{dy-args}
+between the ranks and shapes of the arguments and the result of
+the binary operation:
 \begin{code}
   data dy-args : ∀ m n → Vec ℕ m → Vec ℕ n → Set where
     n-n : ∀ {n s} → dy-args n n s  s
     n-0 : ∀ {n s} → dy-args n 0 s  []
     0-n : ∀ {n s} → dy-args 0 n [] s
 \end{code}
-These are specifications of valid argument array shapes to the binary
-operation.  We either require the shapes to be identical, or one of
-them can be a scalar (rank zero, shape empty).  One may hope that
-by registering these constructors as instances, Agda would be able
-to resolve the overloading automatically.  Unfortunately, it fails
-to do so, in case two zero-dimensional arrays are supplied as arguments.
-The problem is that in this case all three instances fit, but Agda
-can only accept a unique solution.  Ironically, in this case, all
-the three instances would lead to the same correct result.
+The constuctors of \AD{dy-args} specify valid ways of calling
+a binary operation: either the shapes are identical, or one of
+them is a scalar (rank zero, shape empty).
+%
+However, when we register these constructors as instances, Agda fails
+to resolve them when two zero-dimensional arrays are supplied as
+arguments.  In this case all three instances fit, but Agda can only
+accept a unique solution.  Ironically, in this case, all the three
+instances would lead to the same correct result.
 
-
-It turns out that we can solve this problem by using metaprogramming.
-This time round for the purposes of improving the specification.
-We can define a macro that can be registered to resolve a given
+We can solve this problem by using metaprogramming:
+we define a macro that can be registered to resolve a given
 hidden argument.  Within the macro, we are free to make arbitrary
-choices in case of non-unique solutions.  Here is how we do this:
+choices in case of non-unique solutions. Concretely, we
+define a macro \AF{dy-args-ok?} that tries to construct an element
+of type $\AD{dy-args}~m~n~\AB{sx}~\AB{sy}$.
+%
+We can then define a lifting function for binary operations as follows:
 \begin{code}
   dy-args-dim : ∀ {m n sx sy} → dy-args m n sx sy → ℕ  -- pick the largest rank
-  dy-args-shp : ∀ {m n sx sy} → (dy : dy-args m n sx sy) → Vec ℕ (dy-args-dim dy) 
-  dy-args-ok? : Term → TC ⊤ -- macro that resolves the instances
+  dy-args-shp : ∀ {m n sx sy} → (dy : dy-args m n sx sy) → Vec ℕ (dy-args-dim dy)
 \end{code}
 \begin{code}[hide]
+  dy-args-ok? : Term → TC ⊤ -- macro that resolves the instances
   dy-args-dim {m}    n-n = m
   dy-args-dim {m}    n-0 = m
   dy-args-dim {m}{n} 0-n = n
@@ -178,16 +173,10 @@ choices in case of non-unique solutions.  Here is how we do this:
 \end{code}
 We define the \AF{dy-args-dim} and \AF{dy-args-shp} to pick the largest
 rank and shape from the arguments that are related by \AF{dy-args}.
-Then we define a \AF{dy-args-ok?} macro that expects to be applied
-in the context where the goal type is \AF{dy-args}.  It inspects the
-arguments to \AF{dy-args}, and in case the first rank is zero it returns
-\AC{0-n}, in case the second rank is zero it returns \AC{n-0} and if
-two ranks are the same, it returns \AC{n-n}.  We 
-use the \AK{tactic} keyword to register the decision procedure for
-the hidden argument \AB{args}.  Finally, we define the \AF{lift′}
-function that actually turns any binary operation on array elements
+Finally, the \AF{lift′}
+function turns any binary operation on array elements
 into a binary operation on arrays that replicates scalars correctly.
-Here is how we demonstrate the lifting \AF{\_+\_} for natural numbers.
+Here we demonstrate the lifting \AF{\_+\_} for natural numbers.
 \begin{code}[hide]
   s : Vec ℕ 3
   s = 1 ∷ 2 ∷ 3 ∷ []
@@ -237,11 +226,11 @@ Here is how we demonstrate the lifting \AF{\_+\_} for natural numbers.
   a = imap λ iv → 10
   z = imap λ iv → 20
 \end{code}
-We define \AF{\_+\_} as lifted version of the addition on natural numbers.
-Arrays with statically-known ranks are defined: \AF{a} is a 3-d array,
-and \AF{z} is a scalar.  We can see that addition on arrays admit all the
-desired variants.  The last three examples on the right show that it also
-works for the cases when the rank is not known statically.
+%We define \AF{\_+\_} as lifted version of the addition on natural
+numbers.  In this example, \AF{a} is a 3-d array, and \AF{z} is a
+scalar.  We can see that the lifted addition on arrays admit all the
+desired variants.  The last three examples on the right show that it
+still works for the cases when the rank is not known statically.
 
 
 
@@ -300,30 +289,31 @@ works for the cases when the rank is not known statically.
   ▴ᵣ {{ t = a-a {args = n-n} }} b = b
   ▴ᵣ {{ t = a-a {args = n-0} }} b = cst (Ar.sel b [])
   ▴ᵣ {{ t = a-a {args = 0-n} }} b = b
-  
+
   lift : ∀ {X A B d s}{{t : DyScalVec X A B d s}} → A → B → (_⊕_ : X → X → X) → Ar X d s
   lift {{ t }} a b _⊕_ = imap λ iv → Ar.sel (▴ₗ a) iv ⊕ Ar.sel (▴ᵣ b) iv
 
 \end{code}
 
-Notice that we have only presented the overloading between the \AD{Ar}
+We have only presented the overloading between the \AD{Ar}
 types of different shapes.  This still does not solve the problem of
 implicit casts from base types such as \AD{ℕ} and vectors into arrays.
 However, this can be solved by defining regular instances.  In the
-code accompanying the paper, we define a similar \AD{lift} function
+code accompanying this paper, we define a similar \AD{lift} function
 that extends the domain of the lifted binary operation and to accept
 base types, vectors and arrays, and their combinations.
 
 \subsection{CNN}
-As an example of a practical application, we consider a convolutional
-neural network for recognising hand-written digits.
+As a practical application, we consider a convolutional
+neural network for recognising hand-written digits, implemented in APL.
 The reference implementation we start from~\cite{cnninapl} is
 written entirely in APL without relying on any external libraries
-or frameworks. The implementation is very concise --- additionally
-to built-in operators, it only requires to implement 10 new functions.
-Each of these functions is a one line of APL code.  Our goal is to
-translate these functions into our embedded array language.
-This has two purposes.  First, we stress-test
+or frameworks. The implementation is very concise --- apart from
+built-in operators, it only defines 10 new functions,
+each of which is a single line of APL code.
+%
+Translating these functions into our embedded array language
+serves two purposes.  First, we stress-test
 abstractions used in our embedding and the extractor capabilities.
 Second, we verify that all the shapes and ranks match, the indexing
 is in-bound, no division by zero occurs, and that the functions are
@@ -331,7 +321,7 @@ terminating.  As APL is dynamically typed, it is difficult to be
 sure that no runtime errors will occur.  Embedding the code into
 Agda essentially requires us to define a type system for the operators
 in use and guarantee that they hold.
-We consider three representative examples of our encoding and explain
+We consider three representative samples of our encoding and explain
 the details.
 
 \begin{code}[hide]
@@ -355,25 +345,27 @@ module CNN where
 
 
 \paragraph{Logistic function}
-After the convolution and fully-connected layers in our CNN the
+After the convolution and fully-connected layers in our CNN, the
 activation function is applied to each of the results.  The activation
-function in use is called standard logistic and it is defined as:
+function in use is called the standard logistic function
 \(
 \frac{1}{1 - e^x}
 \), and it is being applied to all the elements of the resulting
 array.  Here is the implementation in APL and in our embedding:
-\begin{code}
-  -- logistic←{÷1+*-⍵}
+\begin{mathpar}
+\codeblock{\apl{logistic←{÷1+*-⍵}}}
+\and\codeblock{\begin{code}
   logistic : ∀ {n s} → Ar Float n s → Ar Float n s
   logistic ω = ÷ᵣ 1.0 +ᵣ *ᵣ -ᵣ ω
-\end{code}
-As it can be seen, the implementations are almost identical.
-There are two important reasons for that: the ability to define the
+\end{code}}
+\end{mathpar}
+As can be seen, the implementations are almost identical.
+There are two important reasons: the ability to define the
 precedence and the associativity of the operators; and the automatic
 casts that we explained before.  All the operators in APL are
-right-associative, which we implement as well.  We have chosen
-to distinguish the operations on base types by adding a postfix
-to the name.  That is why instead of \AF{\_+\_}, \AF{\_-\_}, \etc{}
+right-associative, which we implement in Agda using \AK{infixr} statements.
+We distinguish the operations on base types by adding a postfix
+to the name, so instead of \AF{\_+\_}, \AF{\_-\_}, \etc{}
 we have \AF{\_+ᵣ\_}, \AF{\_-ᵣ\_} when we the arguments are arrays
 of base type \AF{Float}.  If we read the body right to left, the
 function negates (\AF{-ᵣ\_}) its argument, then it computes the
@@ -383,52 +375,56 @@ function is shape- and rank-polymorphic; it does not require additional
 proofs and it normalises to a single \AC{imap}.
 
 \paragraph{Mean Squared Error}
-Generally, the nice behaviour of the above function is not surprising
-because the function mapping scalar operations to individual array
-elements.  However, this pattern is very common in array-based
-applications.  Here is another example when we compute the mean
+The nice behaviour of the above function is not really surprising since
+it just maps scalar operations over individual array
+elements.  However, this is a very common pattern in array-based
+applications.  Here is another example that is used to compute the mean
 error which is a sum of squared elements divided by two:
 % \begin{code}
 %  -- backbias←{+/,⍵}
 %  backbias : ∀ {n s} → Ar Float n s → Scal Float
 %  backbias ω = _+ᵣ′_ / , ω
 % \end{code}
-\begin{code}
-  -- meansqerr←{÷∘2+/,(⍺-⍵)*2}
+\begin{mathpar}
+\codeblock{\apl{meansqerr←{÷∘2+/,(⍺-⍵)*2}}} \and
+\codeblock{\begin{code}
   meansqerr : ∀ {n s} → Ar Float n s → Ar Float n s → Scal Float
   meansqerr α ω = _÷ᵣ 2.0 $ _+ᵣ′_ / , (α -ᵣ ω) ×ᵣ (α -ᵣ ω)
-\end{code}
-Here additionally to element-wise mapping we have a reduction of
+\end{code}}
+\end{mathpar}
+In addition to element-wise mapping we have a reduction of
 the elements --- the \AF{\_/\_} operator.  On the right hand side
 it gets an array that is being reduced, and the left operator is
 a binary function that performs the actual operation.  We have a
 flattened (\AF{,\_}) square of differences on the right, and
 addition on \AD{Float}s on the left.  We need to flatten the
-array on the right because \AF{\_/\_}, per APL semantics reduces
+array on the right because according to the APL semantics, \AF{\_/\_} reduces
 over the last axis of the array.  Also, in comparison to reductions
 found in many functional languages, APL does not require the default
-element.  Instead, it deduces the default element from the operation
+element but deduces it from the operation
 in use.  We have encoded the same behaviour using instance resolution
 mechanism.  However, we had to supply the addition on floats
 \AF{\_+ᵣ′\_}, rather than our generalised addition on the arrays
-and vectors of floats \AF{\_+ᵣ\_}.  This happens because otherwise
+and vectors of floats \AF{\_+ᵣ\_}, because otherwise
 Agda fails to instantiate hidden arguments to \AF{\_+ᵣ\_}.  Finally,
 partial application of division on the right \apl{÷∘2} is a built-in
 feature of mix-fix operators in Agda.
 
 
 \paragraph{Back Average Pool}
-In the reverse average pooling function, we need to specify
-a shape restriction.  The shape of the result must be twice
-as big (in every element) as the shape of the input array.
-\begin{code}
-  -- backavgpool←{2⌿2/⍵÷4}⍤2
+The reverse average pooling function requires us to specify
+a shape restriction: the shape of the result must be twice
+as big  as the shape of the input array (in every dimension).
+\begin{mathpar}
+\codeblock{\apl{backavgpool←{2⌿2/⍵÷4}⍤2}} \and
+\codeblock{\begin{code}
   backavgpool : ∀ {s} → Ar Float 2 s → Ar Float 2 $ ▾ (2 × s)
   backavgpool {s = _ ∷ _ ∷ []} ω = 2 ⌿ᵣ 2 /ᵣ′ ω ÷ᵣ 4.0
     where
       infixr 20 _/ᵣ′_
       _/ᵣ′_ = _/ᵣ_ {s = _ ∷ []}
-\end{code}
+\end{code}}
+\end{mathpar}
 We specify this relation using our lifted arithmetic operations:
 \AN{2} \AF{×} \AB{s}, where the left argument is of type \AD{ℕ},
 and the right argument is \AD{Vec} \AD{ℕ} \AN{2}.  The multiplication
@@ -438,99 +434,93 @@ back to \AD{Vec} using the \AF{▾\_} function.
 
 The function itself divides all the array elements by \AN{4.0} and
 replicates them two times across each row (\AF{\_/ᵣ\_}), and two
-times across each column (\AF{\_⌿ᵣ\_}).  Notice that we had to
-help Agda and specify that \AB{s} is guaranteed to be some vector
-of two elements.  Also, similarly to the previous function, we
-had to supply a hidden argument to \AF{\_/ᵣ\_}.  Notice that instead
-of doing this inside the application chain, we used a \AK{where}
+times across each column (\AF{\_⌿ᵣ\_}).  Note that we have to
+help Agda by specifying that \AB{s} is guaranteed to be of length 2.
+Also, similarly to before, we
+need to supply a hidden argument to \AF{\_/ᵣ\_}.  Rather than
+doing this inside the application chain, we used a \AK{where}
 syntax to define a local variant of the row replicator \AF{\_/ᵣ′\_}.
 
 \paragraph{Average Pooling}
-Our final example is an average pooling function.  It gets a
+Our final example is an average pooling function.  It takes a
 two-dimensional array of floats as an argument, where each axis
 is divisible by two.  It partitions the array into sub-arrays
 of shape [2,2] and computes the average of each partition.
-Here is how we implement this:
-\begin{code}
-  -- avg ← { (+/÷≢),⍵ }
-  -- avgpool ← { (x y) ← ⍴⍵ ⋄ avg⍤2 ⊢ 0 2 1 3⍉(x÷2) 2 (y÷2) 2⍴ ⍵ }
+Here is the implementation:
+\begin{mathpar}
+\codeblock{
+\apl{avg ← { (+/÷≢),⍵ }} \\
+\apl{avgpool ← { (x y) ← ⍴⍵ ⋄ avg⍤2 ⊢ 0 2 1 3⍉(x÷2) 2 (y÷2) 2⍴ ⍵ }}
+} \and
+\codeblock{\begin{code}
   avgpool : ∀ {s} → Ar Float 2 $ ▾ (s × 2) → Ar Float 2 s
-  avgpool {s} (imap p) = imap body
-    where
-      body : _ → _
-      body iv = ▾ (_÷ᵣ 4.0 $ _+ᵣ′_ / , f ¨ ι [2,2])
-        where
-           [2,2] = cst {s = 2 ∷ []} 2
-           f : _ → _
-           f (i , pf) = let ix , ix<s = ix→a iv in
-                        p $ a→ix ((ix × 2) + i) (s × 2) $ A<B⇒K<2⇒A*2+K<B*2 ix<s pf
-\end{code}
-It is interesting, that in this particular example, a direct
-implementation that uses indexing is more straight-forward than
+  avgpool {s} (imap p) = imap $ λ iv →
+    let ix , ix<s = ix→a iv
+        f = λ (i , pf) → p $ a→ix ((ix × 2) + i) (s × 2) (A<B⇒K<2⇒A*2+K<B*2 ix<s pf)
+        [2,2] = cst {s = 2 ∷ []} 2
+    in ▾ (_÷ᵣ 4.0 $ _+ᵣ′_ / , f ¨ ι [2,2])
+\end{code}}
+\end{mathpar}
+In this example, a direct
+implementation that uses indexing is actually more straight-forward than
 the one expressed in index-free style.  The result of average
-pooling is given by the \AC{imap} where the index mapping is
-given by the function called \AF{body}.  If we read the definition
-of \AF{body} right to left: we obtain an array of indices (\AF{ι\_})
-into a two-dimensional array of shape [2,2].  Note that \AF{[2,2]}
-is just the identifier name.  Then for each element (\AF{\_¨\_})
-in that array we apply a locally-defined function \AF{f}.  Then
+pooling is given by the \AC{imap}. Reading the body of the \AC{imap} right to left,
+we obtain an array of indices (\AF{ι\_})
+into a two-dimensional array of shape [2,2].  Then for each element (\AF{\_¨\_})
+in that array we apply the function \AF{f} bound above it.  Then
 we sum the elements up and divide them by \AN{4.0}.  The indices
 returned by (\AF{ι\_}) are dependent pairs where the first component
 is a 1-dimensional array representing the value of the index, and the
 second component is a proof that the index is strictly less than the
 array shape (in our case [2,2]).  In \AF{f}, we pattern-match
 on the pair, and we compute selection into the argument of \AF{avgpool}
-at index $2iv+i$.  When selecting at that index, we are required to
-prove that it is within the bounds of the array.  This is done in
-the last line of \AF{avgpool} where we had to prove a theorem that
-this is indeed the case.
+at index $2iv+i$.  The final argument to \AF{f} is a proof that this
+index is within the bounds of the array.
 
-
-Here we consider an extracted \AF{avgpool} with some reformatting
+Here we consider the extraction of \AF{avgpool} into \sac{}, slightly reformatted
 for better readability.
 \begin{lstlisting}[mathescape=false]
 float[.,.] avgpool(int[2] x_1, float[.,.] x_3) {
   float[.,.] __ret;
   s = x_1;
   assert (shape (x_1)[0] == 2);
-  assert (take (2, shape (x_3)) 
+  assert (take (2, shape (x_3))
            == cons ((x_1[0] $* 2), cons ((x_1[1+0] $* 2), empty ([]))));
-
-#define p(__x) (x_3)[__x]
+  #define p(__x) (x_3)[__x]
   __ret = with {
     (.<= iv_1 <=.) {
        i = iv_1[0];
        j = iv_1[1+0];
-    } : (   (p(cons(((i $* 2) $+ 0), cons(((j $* 2) $+ 0), []))) 
-         $+ (p(cons(((i $* 2) $+ 0), cons(((j $* 2) $+ 1), []))) 
+    } : (   (p(cons(((i $* 2) $+ 0), cons(((j $* 2) $+ 0), [])))
+         $+ (p(cons(((i $* 2) $+ 0), cons(((j $* 2) $+ 1), [])))
          $+ (p(cons(((i $* 2) $+ 1), cons(((j $* 2) $+ 0), [])))
          $+ (p(cons(((i $* 2) $+ 1), cons(((j $* 2) $+ 1), [])))
          $+ 0.0f))))
         $/ 4.0f);
   }: genarray (s, zero_float ([]));
-
   assert (take (2, shape (__ret)) == x_1);
   return __ret;
 }
 \end{lstlisting}
-One of the important points of the extracted code is that all the
-local definitions \AF{body} and \AF{f} were inlined, as well as
+In the extracted code, all the
+local definitions (\AF{body} and \AF{f}) are inlined, as well as
 all the compound array operations.  We are very close to the code
-that a programmer could write.  We start with assertions.  From
-the type signature we deduce that the first argument must be a
+that a programmer could write.
+%
+The assertions at the top are deduced from the type signature:
+the first argument must be a
 two-element array, and the shape of the second argument is twice
 the shape of the first argument.  We use arithmetic operations
 prefixed with \$, to indicate that these are operations on scalars
 (int and float) to help the compiler with instantiating overloadings.
-At the end of the function, we generate an assertion that the shape
+%
+Before returning, the function asserts that the shape
 of the returned result must be equal to the first argument.
-In the body of the \texttt{with}-loop we perform 4 selections
-into the argument array and average them.  Notice how we define
-a C preprocessor macro \AB{p}, so that we could use the
-pattern-matched argument of the \AC{imap} as a function.
-As SaC is first-order language, and the argument to
-\AC{imap} is a function, we mimic the higher-order function
-with the macro.  We are allowed to do this, because \AC{imap}
-is the only supported construct that accepts a function as an
-argument.
-
+%
+The body of the \texttt{with}-loop performs 4 selections
+into the argument array and averages them.
+%
+Finally, since \sac{} is a first-order language but \AC{imap}
+is a higher-order construct, the extractor has inserted a
+macro \AB{p} to mimic the application of the pattern-matched
+argument of \AF{imap} as a function.
