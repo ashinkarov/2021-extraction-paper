@@ -7,7 +7,8 @@ module Basics where
 \section{Background}
 We start with a brief overview of key Agda constructions that
 are used in this paper.  We also present relevant parts of the
-reflection API.  For full introduction to Agda refer to~\cite{}.
+reflection API.  For further introduction to Agda refer
+to~\cite{10.1007/978-3-642-03359-9_6}.
 
 \subsection{Agda Basics}
 Agda is an implementation of Martin-L{\"o}f's dependent type
@@ -55,7 +56,8 @@ passed explicitly using the syntax $\AC{zero} \{\AB{n} = \AB{x}\}$.
 %
 The propositional equality \AF{\_≡\_} type expresses equality of its
 two arguments, and has a single constructor \AC{refl} stating that any
-value \AB{x} is equal to itself.  It uses mix-fix syntax~\cite{}: the
+value \AB{x} is equal to itself.  It uses mixfix
+syntax~\cite{10.1007/978-3-642-24452-0_5}: the
 underscores in the name indicate placeholders for the arguments.
 %
 \AF{Set} is the name of the type of all small types.  Sets form a
@@ -100,8 +102,8 @@ Clauses with absurd patterns do not have a body, as the type system
 guarantees that they are never called at run-time.
 %
 In the definition of \AF{wth} we demonstrate the use of the \AK{with}
-construction~\cite{} which makes it possible to match on the result of
-an expression locally.
+construction~\cite{10.1017/S0956796803004829} which makes it possible
+to match on the result of an expression locally.
 
 % \todo[inline]{Amongst other things we need to explain with-clauses
 %   and pattern-matching functions.  Maybe records and their eta-equality.
