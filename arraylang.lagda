@@ -18,10 +18,10 @@ other imperative constructions of C.  This allows the compiler
 to use implicit memory management and to make decisions about
 parallel execution of certain code parts without requiring
 any explicit annotations.  The current compiler \texttt{sac2c}
-supports efficient~\cite{} compilation to multicore and GPU
+supports efficient~\cite{sac-nbody} compilation to multicore and GPU
 architectures.  We introduce the key aspects of
 the language that will be used in extraction examples.  For
-more information about SaC refer to~\cite{GrelSchoIJPP06,sactut}.
+more information about SaC refer to~\cite{GrelSchoIJPP06}.
 
 The main distinctive features of SaC is its hierarchy of array types,
 intersection types and the unified data-parallel array comprehensions.
@@ -176,8 +176,9 @@ is given by a function from valid indices to $X$.
 
 In some sense \AD{Ar} and \AD{Ix} are second-order versions of \AD{Vec}
 and \AD{Fin}.  This could be also thought of as a
-computational interpretation of the Mathematics of Arrays~\cite{} (where $\Psi$
-becomes an array constructor), or as a generalisation of pull arrays~\cite{pushpull}.
+computational interpretation of the Mathematics of Arrays~\cite{LMRMullin:moa}
+(where $\Psi$ becomes an array constructor), or as a generalisation of
+pull arrays~\cite{pushpull}.
 
 This encoding intrinsically guarantees that all the array accesses are within
 bounds.  If we compare \AC{imap} and the \texttt{genarray} \texttt{with}-loop,
