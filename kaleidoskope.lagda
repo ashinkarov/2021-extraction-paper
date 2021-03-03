@@ -199,7 +199,7 @@ We also allow the decidability predicates
 value and a proof that the relation holds or does not hold,
 depending on the value of the boolean.
 We map \AC{true} to \AN{1} and \AC{false} to \AN{0}, ignoring the proof. First order
-functions of the above types such as basic arithmetic \AD{\_+\_}, \AD{\_-\_},\ldots
+functions of the above types such as basic arithmetic \AD{\_+\_}, \AD{\_-\_}, \etc{}
 are mapped to corresponding functions in the target language.
 
 While it is tempting to say that any Agda term of the above types could
@@ -280,7 +280,7 @@ In the type of \AF{ex}, \AF{length} is a function from \AD{String} to \AD{ℕ}, 
 it is applied to a constant string.  In the second clause of \AF{fib} we
 create a tuple (\AB{n} \AC{,} \AB{m} \AF{+} \AB{n})
 and immediately destruct it via pattern matching. Note that Kaleidoscope
-supports neither strings nor tuples, soneither \AF{length} nor \AF{\_,\_}
+supports neither strings nor tuples, so neither \AF{length} nor \AF{\_,\_}
 can be part of the final
 extracted Kaleidoscope code.
 %The same holds for the universe of types, which we
@@ -612,7 +612,7 @@ case for proof-irrelevant types such as \AD{\_≡\_} and \AD{\_<\_}.
 We encode the elements of these types with the unit value (natural number \AN{1}).
 We then generate an assertion that uses the decision procedure. This
 decision procedure returns an element of the \AD{Dec} type
-which we interpret as a boolean value: \AN{1} for \AC{yes} and 0 for \AC{no}.
+which we interpret as a boolean value: \AN{1} for \AC{yes} and \AN{0} for \AC{no}.
 %Pattern matching on the value of \AD{\_≡\_} is straight-forward as there
 %is only one constructor.  Constructors of \AD{\_<\_}
 %essentially encode the difference between the arguments, which we
@@ -675,9 +675,9 @@ such as parametricity or run-time irrelevance.
 
 It might seem that the assertion on the result is unneccessary, since it is guaranteed to be satisfied
 by construction. However, by inserting this assertion we
-pass on information further down the toolchain, which may be used for example
-by the compiler of the target language to perform more optimizations.
-All these assertions may
+pass on information (that might be undecidable to recompute) further down the toolchain.
+This may be used for example by the compiler of the target language to perform more optimizations.
+All these assertions can
 be turned off if a programmer or a compiler decides so, but this is
 not a concern of the extractor.
 
