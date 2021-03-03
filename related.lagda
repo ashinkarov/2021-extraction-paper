@@ -66,7 +66,7 @@ which the GHC backend is the most prominent.
 Other proof assistants provide similar extraction tools as well.
 %
 The main difference from our approach in this paper
-is that these extractors are written as a plugins to the proof
+is that these extractors are written as plugins to the proof
 assistant, while we implement our extractors directly in the proof
 assistant itself.
 %
@@ -79,8 +79,8 @@ be reflected themselves and their structure can be leveraged.
 
 \paragraph{Dependently typed metaprogramming}
 Several dependently-typed languages are equipped with metaprogramming
-capabilities: Idris~\cite{idris-refl}, Lean~\cite{lean-refl},
-Coq~\cite{metacoq}, and Agda~\cite{agda-refl}.  All of these
+capabilities: Idris \cite{idris-refl}, Lean \cite{lean-refl},
+Coq \cite{metacoq}, and Agda \cite{agda-refl}.  All of these
 implement a similar API as described in this paper.  This is
 reassuring, as it means our proposed approach is immediately portable
 into many other contexts.
