@@ -233,7 +233,7 @@ are very heavyweight when one has to deal with an embedded language
 that uses dependent types, as we do here (recall that we allow
 \AF{\_<\_}, \AF{\_≡\_}, \etc{}). In particular, one needs to encode
 not only types and terms of the embedded language, but also contexts
-and explicit substutions, turning even the simplest programs into
+and explicit substitutions, turning even the simplest programs into
 large and non-trivial terms.
 
 It is still an open question whether
@@ -676,7 +676,7 @@ of a dependent type such as \AF{\_<\_}, as long as we avoid using
 features that distinguish between type-level and term-level arguments
 such as parametricity or run-time irrelevance.
 
-It might seem that the assertion on the result is unneccessary, since it is guaranteed to be satisfied
+It might seem that the assertion on the result is unnecessary, since it is guaranteed to be satisfied
 by construction. However, by inserting this assertion we
 pass on information (that might be undecidable to recompute) further down the toolchain.
 This may be used for example by the compiler of the target language to perform more optimizations.
@@ -1263,7 +1263,7 @@ can be registered as rewrite rules.  For example:
 }
 \end{mathpar}
 We have defined a propositional equality \AF{plus-0}, and registered it as a
-rewrite rule.  By doing so, \AF{plus-0} became a defintional equality, and
+rewrite rule.  By doing so, \AF{plus-0} became a definitional equality, and
 we go the ``missing'' reduction rule.  We can now show that \AB{x}\AF{+}\AN{0}
 is definitionally equal to \AB{x}.
 
