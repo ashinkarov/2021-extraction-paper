@@ -8,7 +8,7 @@ module Basics where
 We start with a brief overview of key Agda constructions that
 are used in this paper.  We also present relevant parts of the
 reflection API.  For a more in-depth introduction to Agda refer
-to~\cite{10.1007/978-3-642-03359-9_6}.
+to the Agda user manual~\cite{agda}.
 
 \subsection{Agda Basics}
 Agda is an implementation of Martin-L{\"o}f's dependent type
@@ -48,13 +48,13 @@ type name: \AC{ℕ.zero}, \AC{ℕ.suc}.
 %
 The \AD{Fin} \AB{n} type represents natural numbers that are bounded
 by \AB{n}.  In the definition of \AD{Fin}, ∀ binds the variable
-without needing to specify its type.  Braces indicate hidden
+without needing to specify its type.  Curly braces indicate hidden
 arguments, which can be left out at function applications: we have
 \AC{suc} \AC{zero}~:~\AD{Fin} \AN{3}, assuming that Agda can infer a
 (unique) value for the hidden argument.  Hidden arguments can be
-passed explicitly using the syntax $\AC{zero} \{\AB{n} = \AB{x}\}$.
+passed explicitly using the syntax $\AC{zero}\ \{\AB{n} = \AB{x}\}$.
 %
-The propositional equality \AF{\_≡\_} type expresses equality of its
+The propositional equality type \AF{\_≡\_} expresses equality of its
 two arguments, and has a single constructor \AC{refl} stating that any
 value \AB{x} is equal to itself.  It uses mixfix
 syntax~\cite{10.1007/978-3-642-24452-0_5}: the
@@ -62,9 +62,8 @@ underscores in the name indicate placeholders for the arguments.
 %
 \AF{Set} is the name of the type of all small types.  Sets form a
 predicative hierarchy, meaning that \AF{Set} \AB{i} is of type
-\AF{Set} (\AC{ℓsuc} \AB{i}), and \AF{Set} is a synonym for \AF{Set}
-\AN{ℓzero}.  The \AC{ℓsuc} and \AC{ℓzero} are the same as \AC{suc} and
-\AC{zero} but for type \AD{Level}.
+\AF{Set} (\AF{ℓsuc} \AB{i}), and \AF{Set} is a synonym for \AF{Set}
+\AF{ℓzero}.  The functions \AF{ℓsuc} and \AF{ℓzero} are used to construct elements of type \AD{Level}.
 
 
 Functions are defined in a pattern-matching style:
@@ -76,8 +75,8 @@ Functions are defined in a pattern-matching style:
 \codeblock{
 \begin{code}
   _*_ : ℕ → ℕ → ℕ
-  zero * y = zero
-  (suc x) * y = y + (x * y)
+  zero     * y  = zero
+  (suc x)  * y  = y + (x * y)
 \end{code}
 }
 \and
@@ -113,7 +112,7 @@ to match on the result of an expression locally.
 %   Nat, Fin, Vec, Eq, with, patterns, hidden values, mixfix}
 
 \subsection{Reflection}
-Instead of specifying the full structure of all types that Agda uses
+Instead of explaining the full structure of all types that Agda uses
 to encode reflected syntax, we consider a small but representative
 sample: the function \AF{foo} (left) and its reflection (right).
 \begin{code}[hide]
@@ -207,7 +206,7 @@ These operations are made available through the \AD{TC} monad, which
 takes care of managing the current context of the elaborator.
 
 The key metaprogramming primitives are \AK{quote} and
-\AK{unquote}, which operate as follows:
+\AK{unquote}, that operate as follows:
 \begin{mathpar}
 \codeblock{
 \begin{code}

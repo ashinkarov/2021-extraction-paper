@@ -89,7 +89,7 @@ building dependently typed embedded DSLs and very much
 shares the ideas advocated in this paper, suggesting that
 our approach could work there as well.
 \citet{10.1145/3371076} use MetaCoq to formally verify
-the core type system of Coq. This combines very nicely with
+the core type system of Coq. This combines nicely with
 our approach, as we could use the verified core language
 as a basis to verify our custom extractors.
 \citet{10.1145/3372885.3373829} use MetaCoq to implement
@@ -108,11 +108,11 @@ big advantage for programmers.  However, one has to rely on
 the capabilities of the inference engine, which may fail for
 some complex examples.
 In~\cite{10.1007/978-3-642-41582-1_11} authors use Agda as
-a frontend for Accelerate which is an array library in Haskell.
+a frontend for Accelerate, an array library in Haskell.
 The motivation of the work is similar to ours, to provide static
 guarantees about array computations.  As the target language of
 this work is Haskell, and Agda provides a backend for it,
-the integration happens very smoothly without requiring
+the integration happens smoothly without requiring
 any extraction techniques.
 
 

@@ -172,7 +172,9 @@
 }
  \newcommand{\sac}{\textsc{SaC}}
 
-
+\clubpenalty=10000
+\widowpenalty=10000
+\displaywidowpenalty=10000
 
 \begin{document}
 
@@ -352,7 +354,7 @@ existing backends, we are stuck.
 
 There are two common approaches to this problem: i) extending the
 toolchain to produce code in the desired target; or ii) defining
-a syntactic representation of the target language and implement
+a syntactic representation of the target language and implementing
 the program in it.  The first approach gives the most freedom but it
 may be technically challenging, as one has to modify the internals of
 the theorem prover.  The second approach forces us to define
@@ -373,11 +375,11 @@ language; no encoding artefacts.
 Specifically, we use
 \emph{reflection}~\cite{idris-refl, lean-refl,metacoq,agda-refl} (also
 known as \emph{direct reflection}~\cite{nuprl-refl}), a form of
-compile-time metaprogramming\footnote{This use of the word
+compile-time metaprogramming.\footnote{This use of the word
 `reflection' is not to be confused with reflection in Java and similar
-languages, which is a form of \emph{runtime metaprogramming}.}.
+languages, which is a form of \emph{runtime metaprogramming}.}
 %
-That is, the language has \texttt{quote}/\texttt{unquote}
+That is, the host language has \texttt{quote}/\texttt{unquote}
 primitives that translate expressions to their internal representation
 and back.  The internal representation is regular data that can be
 accessed and manipulated as usual.  The main goal of
@@ -395,7 +397,7 @@ the host language to verify the properties; and finally, we use a
 custom extractor to translate our implementation to the target
 language.
 %
-An important point is that our approach is fine-grained: embeddings
+Our approach is fine-grained: embeddings
 (and consequently extractors) do not have to cover the entire
 language, only the subset that is sufficient to specify the problem of
 interest.  Also, instead of implementing the entire application in a
@@ -407,19 +409,18 @@ Our proposed approach has several advantages:
   \item Firstly, working with a shallow embedding is much easier than
   working with a deep one.  While deep embeddings provide full access
   to the program representation, they require us to encode the full
-  syntax and typing rules of the target language.
+  syntax and typing rules of the target language,
+  which soon becomes impractical for embedded languages with dependent
+  types~\cite{10.1145/1863495.1863497}. This matters because we use
+  dependent types in the embedding to encode the properties of
+  interest.
   %
   %A number of
   %examples~\cite{} show how advanced type systems such as
   %System-F~\cite{} or dependent types with families~\cite{} can be
   %leveraged to share the host type system for typechecking target
   %programs.
-  This works beautifully for target languages with simple
-  type systems, but the embedding gets impractically
-  ugly~\cite{10.1145/1863495.1863497} in
-  case of dependently typed ones.  This matters because we use
-  dependent types in the embedding to encode the properties of
-  interest.  Shallow embeddings do not require any additional
+  In contrast, shallow embeddings do not require any additional
   encoding, since they are regular programs in the host language, and
   can make use of all available libraries and tools.
 
@@ -431,9 +432,9 @@ Our proposed approach has several advantages:
   full use of dependent types, ensuring that the extraction process is
   sound.
 
-  \item Finally, since the embedded program and the extractor are
+  \item Thirdly, since the embedded program and the extractor are
   developed side-by-side, we can make use of features of the host
-  language to customize the behaviour of the extractor
+  language to customise the behaviour of the extractor
   further. Concretely, we use Agda's \emph{rewrite rules} as a
   lightweight method of applying verified domain-specific
   optimizations during extraction.
@@ -448,7 +449,7 @@ We implement extractors for Kaleidoskope~\cite{kaleidoscope} (Section~\ref{sec:b
 and SaC~\cite{sac} (Section~\ref{sec:array}) in Agda.
 The former is a minimalist langauge that we use to demonstrate the basic
 extraction principles.  The latter is a high-performance
-array language that can generate efficient code for various architectures, but
+array language that generates efficient code for various architectures, but
 it has a restrictive type system.  Our SaC embedding guarantees
 program termination, in-bound array indexing, and safety of arithmetic operations.
 %
@@ -468,15 +469,15 @@ The key contributions of this paper are:
     \item We extend the reflection API of
             Agda to make it better suited for defining
             custom extractors. Specifically, we extend the clause
-            syntax with telescopes, we add new operations for
-            selective reduction, and we implement optional reconstruction
-            of datatype parameters.
-    \item We implement extractors for two languages: Kaleidoscope
-            and SaC.  We use the latter as a basis for embedding
-            a subset of APL.\@
+            syntax with telescopes (Section~\ref{sec:normalisation}), we add new operations for
+            selective reduction (Section~\ref{sec:controlling-reduction}), and we implement optional reconstruction
+            of datatype parameters (Section~\ref{sec:embedded-array-lang}).
+    \item We implement extractors for two languages: Kaleidoscope (Section~\ref{sec:basic-extr})
+            and SaC (Section~\ref{sec:array}).  We use the latter as a basis for embedding
+            a subset of APL (Section~\ref{sec:apl}).\@
     \item We demonstrate how the proposed embeddings can be used
             by encoding a real-world application and ensuring that
-            it extracts correctly.
+            it extracts correctly (Section~\ref{sec:cnn}).
 \end{itemize}
 
 %The rest of the paper is organised as follows.  We start with a brief

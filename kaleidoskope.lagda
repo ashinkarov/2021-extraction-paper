@@ -27,7 +27,7 @@ postulate
 % dealing with type difference in type systems.
 
 In this section we demonstrate basic mechanisms that are necessary when
-implementing reflection-based extractors.  In order to make our examples
+implementing reflection-based extractors.  To make our examples
 concrete, we use a minimalist language called
 Kaleidoscope~\cite{kaleidoscope} as our target.  We explain the challenges
 and demonstrate Agda code snippets of the actual extractor for Kaleidoscope.
@@ -109,10 +109,11 @@ The first argument to the \AF{kompile} macro is the name of the main
 function that we want to extract, in this case \AF{foo}. The second
 and the third parameters of \AF{kompile} are lists of names that
 control function inlining in the extracted terms and traversal into
-the definitions found in the call graph (explained later).
+the definitions found in the call graph (which are added by the
+\AF{kompile-term} function explained in Section~\ref{sec:translating-terms}).
 The \AF{kompile}
-macro will obtain the normalized type and body of the main function, run
-\AF{kompile-fun} for the actual extraction and recursively extract
+macro obtains the normalised type and body of the main function, runs
+\AF{kompile-fun} for the actual extraction and recursively extracts
 any functions that have been registered for extraction during the
 processing of \AF{foo}.
 
@@ -220,7 +221,7 @@ the given number.  Neither \AF{length} nor \AF{showNat}
 are representable in Kaleidoscope, as there is no notion of strings
 in the language.
 %
-In order to pin down precisely what fragment of Agda we can extract,
+To pin down precisely what fragment of Agda we can extract,
 we would have to restrict what
 types are allowed in embedded functions and what terms can appear
 in function bodies, taking us away from the world of
@@ -233,12 +234,14 @@ that uses dependent types, as we do here (recall that we allow
 \AF{\_<\_}, \AF{\_≡\_}, \etc{}). In particular, one needs to encode
 not only types and terms of the embedded language, but also contexts
 and explicit substutions, turning even the simplest programs into
-large and non-trivial terms. It is still an open question whether
+large and non-trivial terms.
+
+It is still an open question whether
 there exists a satisfying middle ground between shallow and
 deep embedding.
 %(see Section~\ref{sec:related} for related work in
 % this direction).
-
+%
 Our solution in this paper is to avoid the encoding problem entirely
 and rely instead on metaprogramming to extract a subset of Agda into
 our target language.  An Agda term is defined to belong to the
@@ -251,7 +254,7 @@ embedding if the extractor does not fail on it.
 % any Agda terms as valid extraction candidates.
 
 
-\subsection{Normalisation}
+\subsection{Normalisation} \label{sec:normalisation}
 Working with a shallow embedding gives us an important benefit: we may use any host
 language constructs that are not present in the embedding, as long as they can
 be eliminated prior to extraction.  For example, the target language may not
@@ -298,11 +301,11 @@ they turn into values or neutral terms.
 %
 %\subsubsection{Telescopes}
 Agda's reflection API offers a function \AF{normalise} for this purpose.
-However, this will only normalize the term itself and not the body of
+However, this only normalises the term itself and not the body of
 functions used in this term.
 %
-This is a technical limitation that has to do with the chosen internal
-represenation of the pattern-matching functions.
+This is a technical limitation that has to do with the internal
+representation of pattern-matching functions.
 %
 To work around this limitation, we also recursively traverse the
 definition of each function used in the term and normalise all terms
@@ -315,11 +318,11 @@ but the reflection API did not provide access to it. Rather than going
 through the painful and error-prone process of reconstructing this
 context, we instead extended the reflection API to provide it for us
 (see \url{https://github.com/agda/agda/pull/4722} for the full story).
-Thanks to this change, it is straightforward to normalise the right-hand
-side of each clause in a function definition.
+%Thanks to this change, it is straightforward to normalise the right-hand
+%side of each clause in a function definition.
 
 \begin{comment}
-In order to normalise the right-hand side of a clause in a function definition,
+To normalise the right-hand side of a clause in a function definition,
 we need to provide the right context with the types of the pattern
 variables of that clause, which is non-trivial to reconstruct.
 %
@@ -380,7 +383,7 @@ run \AF{inContext} \AB{ctx} (\AF{normalise} \AB{t}) to normalise the body.
 %extracted function.
 \end{comment}
 
-\subsection{Controlling Reduction}
+\subsection{Controlling Reduction} \label{sec:controlling-reduction}
 
 
 Fully normalising a term sometimes leads to undesirable results.
@@ -423,17 +426,17 @@ represents a concept in a radically different way than in the target
 language.
 %A typical reason for this is proof relevance, like in the above case, but could also be a general
 %invariant that we attach to objects.
-In such cases, we can customize the extractor by hard-coding the
+In such cases, we can customise the extractor by hard-coding the
 mapping of the Agda function to the target language function.  For
 example, in this case we map \AF{\_≟\_} to \AC{Eq}.
 
-In order to do this, we have to make sure that normalisation does not expand
+To do this, we have to make sure that normalisation does not expand
 certain definitions.  This is what the second argument (base) to our interface
 function \AF{kompile} is used for --- to specify the list of functions that
 must not reduce during normalisation.
 %
 This functionality was not previously available in Agda, so we added two new primitives
-to the reflection API --- \AF{dontReduceDefs} and \AF{onlyReduceDefs} with pull
+to the reflection API --- \AF{dontReduceDefs} and \AF{onlyReduceDefs} --- with pull
 request \url{https://github.com/agda/agda/pull/4978}.
 %The functions have the following
 %types:
@@ -445,13 +448,13 @@ request \url{https://github.com/agda/agda/pull/4978}.
 %  onlyReduceDefs : ∀ {a} {A : Set a} → List Name → TC A → TC A ; onlyReduceDefs = ⋯
 %  dontReduceDefs : ∀ {a} {A : Set a} → List Name → TC A → TC A ; dontReduceDefs = ⋯
 %\end{code}
-These functions give us an environment in which any call to
+These functions give us an environment where any call to
 \AF{reduce} or \AD{normalise} will avoid reducing any function that is
 in the list (for \AF{dontReduceDefs}) or not in the list (for
 \AF{onlyReduceDefs}).
 %
 This new feature is used by the \AF{kompile} macro to avoid reducing
-functions for which we have a fixed translation in the target language.
+functions for which we have a fixed translation.
 
 % \todo[inline]{Here we explain what is the meaning of the arguments
 % to kompile, and that we had to extend Agda in order to make this happen}
@@ -515,7 +518,7 @@ whether the type is supported.
 
 Dependent types such as \AD{Fin} can be seen as encoding some
 predicate on their arguments as well as the element of the dependent
-type itself.  We preserve this information encoded in them by mapping
+type itself.  We preserve this information by mapping
 them to assertions in the target language, essentially trading static
 checks for dynamic ones.
 %
@@ -790,7 +793,7 @@ When a function has both regular and absurd clauses, we are faced with
 a design decision. We can either preserve the absurd clauses and use
 \AF{assert} (\AN{0}) as their body, or eliminate them entirely.
 While eliminating them is sound, leaving them in can provide valuable
-information for the compiler of the target language. Cnsider the following example:
+information for the compiler of the target language. Consider the following example:
 \begin{code}
   ex₁₀ : let P x = x * x + 2 ∸ 3 * x in ∀ x → 0 < P x → ℕ
   ex₁₀ 1 () ; ex₁₀ 2 () ; ex₁₀ x pf = ⋯
@@ -800,7 +803,7 @@ after eliminating first two cases, the body of the function would
 reduce to a single statement over variables \AB{x} and \AB{pf}.
 However, deducing that \AB{x} does not equal \AN{1} or \AN{2} is not
 straightforward.  Instead, we preserve this information as an
-assertion, so the compiler of the target language can make good use of
+assertion, so the compiler of the target language can make use of
 it.
 
 The actual translation from patterns to predicates is implemented in
@@ -833,9 +836,9 @@ module ClPats where
 \begin{code}
   {-# TERMINATING #-}
   kompile-clpats : Telescope → (pats : List (Arg Pattern)) → (exprs : List Expr) → PatSt → Err PatSt
-  kompile-clpats tel (arg i (con (quote F.zero) ps) ∷ l) (e ∷ ctx) pst =
+  kompile-clpats tel (arg i (con (quote Fin.zero) ps) ∷ l) (e ∷ ctx) pst =
     kompile-clpats tel l ctx $ pst +=c (BinOp Eq e (Nat 0))
-  kompile-clpats tel (arg i (con (quote F.suc) ps@(_ ∷ _ ∷ [])) ∷ l) (e ∷ ctx) pst = do
+  kompile-clpats tel (arg i (con (quote Fin.suc) ps@(_ ∷ _ ∷ [])) ∷ l) (e ∷ ctx) pst = do
     (ub , pst) ← pst-fresh pst "ub_"
     kompile-clpats tel (ps ++ l) (Var ub ∷ (BinOp Minus e (Nat 1)) ∷ ctx)
                    $ pst +=c (BinOp Gt e (Nat 0))
@@ -973,7 +976,7 @@ tree ourselves.
 % that we explained the telescopes (or explain them here), and we can
 % reiterate absurd patterns here.}
 
-\subsection{Translating terms}
+\subsection{Translating terms} \label{sec:translating-terms}
 The actual translation of Agda terms into Kaleidoscope terms is a
 mechanical process.  However, as the translation may fail, the use of
 monads and \AK{do}-notation for managing errors help us to keep the
@@ -1014,17 +1017,14 @@ module KompTerm where
     a ← kompile-term a vars
     b ← kompile-term b vars
     return $ BinOp <$> ok Plus ⊛ a ⊛ b
-
   kompile-term (def (quote F.fromℕ<) args) vars = do
     ok (x ∷ []) ← kompile-arglist args (0 ∷ []) vars
                   where _ → kt "wrong assumptions about arguments of fromℕ<"
     return $ ok x
-
   kompile-term (def n args@(_ ∷ _)) vars = do
     modify λ k → record k { funs = KS.funs k ++ [ n ] }
     args ← kompile-arglist args (mk-iota-mask $ length args) vars
     return $ Call <$> ok (normalise-name $ showName n) ⊛ args
-
   kompile-term t vars = ⋯
 \end{code}
 We demonstrate three representative clauses of the term extracting function.
@@ -1102,7 +1102,7 @@ of natural numbers) to prove termination.  Here is the Agda definition and the e
   log₂ x = log₂′ x ≤-refl                --   let x = x_1 ; __ret = log2' (1 + x, x, 1)
                                          --   __ret
 \end{code}
-We define two functions: \AF{log₂} which is a wrapper and \AF{log₂′} where the
+We define two functions: a wrapper function \AF{log₂}, and a helper \AF{log₂′} where the
 actual work happens.  We define two base cases for \AN{0} and \AN{1} and the recursive
 case on the argument divided by \AN{2}.  Note that the function
 $\AF{\_/\_}~:~(x\ y~:~\AD{ℕ}) \{\AB{≢0}~:~\AF{False} (\AB{y}\ \AD{≟}\ \AN{0})\} → \AD{ℕ}$ takes an implicit
@@ -1135,7 +1135,7 @@ a return type \AB{a} \AF{<} \AB{b} can be replaced with the unit value.  This
 is valid, because we are extracting function calls that were verified by the
 typechecker.  Therefore, we can completely omit the proof part of \AF{\_<\_},
 only acknowledging that the type is inhabited.  This particular case relies
-on \AF{≤-trans} (from the inlined proof) and \AF{≤-refl} (from \AF{log₂}
+on \AF{≤-trans} (from the inlined proof) and \AF{≤-refl} (from the \AF{log₂}
 definition) being extracted into unit values.
 
 There is also the final \AK{else} case, which is not specified in the
@@ -1173,7 +1173,7 @@ rewrite rules and integrate them into the extractor.
 %
 However, we can avoid the effort of doing so since Agda already has a
 built-in concept of rewrite rules.
-%
+
 Rewrite rules were originally introduced to Agda to work around the
 limitations of definitional equality in intentional type theory.
 %
@@ -1183,7 +1183,7 @@ $x + 0$.
 Since we work with a shallow embedding, these rewrite rules are
 equally well suited to optimize the embedded programs we write before
 they are extracted.
-
+%
 \begin{comment}
 One of the unfortunate features of intuitionistic dependently-typed systems is the
 distinction between definitional and propositional equalities.  A famous
@@ -1236,7 +1236,7 @@ of length \AB{n}:
 \end{code}
 The reason is that \AB{x} \AF{++} \AC{[]} is of type \AD{Vec} \AD{ℕ}
 (\AB{n} \AF{+} \AN{1}).  This problem might seem too theoretical, unfortunately
-such cases are very often seen in practice, as a result of a long
+such cases are often seen in practice, as a result of a long
 $\beta$-reduction sequence.  In the context of extraction, such terms
 make the extracted code less efficient.
 
@@ -1279,14 +1279,14 @@ the form \AB{x} \AF{+} 0 to \AB{x}:
 %
 \begin{code}
   plus-0 : ∀ x → x + 0 ≡ x
-  plus-0 zero    = refl
-  plus-0 (suc x) = cong suc $ plus-0 x
+  plus-0 zero     = refl
+  plus-0 (suc x)  = cong suc $ plus-0 x
   {-# REWRITE plus-0 #-}
 \end{code}
 The definition of \AF{plus-0} proves the equivalence of the left- and
 right-hand sides of the rule, and the \AK{REWRITE} pragma registers it as a
 rewrite to be applied automatically during normalisation.  As another
-example, we could define the following rule that we were taught in
+example, we define the following rule that we were taught in
 school:
 \begin{code}[hide]
 module PlusZSolv where
@@ -1332,7 +1332,7 @@ systems we can selectively turn properties into optimisations.
 
 One danger with rewrite rules is that we can get different result depending on the order of rule application.
 The recently introduced confluence checker~\cite{10.1145/3434341}
-helps to prevent this problem.  When it is turned on, it will report
+helps to prevent this problem.  When it is turned on, it reports
 when the registered set of rewrite rules is not
 confluent.  For example, in case of \AF{plus-0} rule, the confluence checker
 complains that

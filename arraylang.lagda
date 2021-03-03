@@ -20,7 +20,7 @@ parallel execution of certain code parts without requiring
 any explicit annotations.  The current compiler \texttt{sac2c}
 supports efficient~\cite{sac-nbody} compilation to multicore and GPU
 architectures.  We introduce the key aspects of
-the language that will be used in extraction examples.  For
+the language that are used in the extraction examples.  For
 more information about SaC refer to~\cite{GrelSchoIJPP06}.
 
 \paragraph{Type system}
@@ -60,7 +60,7 @@ precision with which they describe the rank and dimensions of an array:
   [] $\le$ [*]      [42] $\le$ [.] $\le$ [+] $\le$ [*]     [2,2] $\le$ [.,.] $\le$ [+] $\le$ [*]
 \end{lstlisting}
 This shape hierarchy gives rise to function overloading based on the
-shape of the arguments, where the compiler will pick the most specific
+shape of the arguments, where the compiler picks the most specific
 instance in case of overlap.
 % During the optimisation cycle the compiler creates instances
 % based on the uses of the overloading.
@@ -124,7 +124,7 @@ $i$-th row and $j$-th column, expressed by \texttt{fold (+, 0)}.
 For more details on programming in SaC refer to~\cite{GrelckCEFP11}.
 
 
-\subsection{Embedded Array Language}
+\subsection{Embedded Array Language} \label{sec:embedded-array-lang}
 \begin{code}[hide]
 postulate
   ⋯ : ∀ {a}{A : Set a} → A
@@ -137,7 +137,7 @@ module ArType where
   infixr 5 _∷_
 \end{code}
 
-In order to embed SaC, we have to define a type of multi-dimensional
+To embed SaC, we have to define a type of multi-dimensional
 arrays, and three constructs: with-loops, shapes, and selections.  Our goal
 is to express non-trivial shape relations
 between the arguments of a function and to ensure in-bound array indexing
@@ -197,7 +197,7 @@ With a similar level of expressiveness, the
 implementation encodes the correct shape relation between the arguments and
 guarantees in-bound indexing without any explicit proofs.
 
-Our definition of \AD{Ar} satisfies the very useful property that
+Our definition of \AD{Ar} satisfies the useful property that
 any composition of operations on arrays normalises to a single
 \AC{imap}.  Consider an example:
 \begin{code}[hide]
@@ -272,7 +272,7 @@ However, using a record type for \AD{Ar} posed an unexpected challenge.
 %
 As our extractor translates \AC{imap} to a \texttt{genarray} with-loop, it has
 to supply the shape of the resulting array.  In our encoding, this is
-a type-level value (the last argument of \AD{Ar}) which is not stored
+a type-level value (the last argument of \AD{Ar}) that is not stored
 in the internal representation of the record value.  For example, consider
 the following function and its reflected body:
 \begin{mathpar}
@@ -331,7 +331,7 @@ of some function \AF{f} looks like:
 \subsection{Validating Types}
 One of the major differences between extracting into Kaleidoscope and
 into SaC is the presence of the non-trivial type system in the latter.
-This requires us to choose which Agda types are going to be supported
+This requires us to choose what Agda types are going to be supported
 and how to translate them into the target language.
 
 SaC lacks support for heterogeneously nested arrays: all the
@@ -347,8 +347,8 @@ follows:
   (int[5])[6] => int[6,5]        (int[$\tau$])[$\sigma$] => int([$\sigma$] ++ [$\tau$])
 \end{lstlisting}
 Also, the \texttt{with}-loop construct makes it possible to express
-the computation in a nested style, but the resulting array type will
-be flattened according to the scheme above.   Consider an example:
+the computation in a nested style, but the resulting array type
+is flattened according to the scheme above.   Consider an example:
 \begin{lstlisting}
   int[5] foo (int[1]);  // some function that produces 5-element vectors.
   int[6] gen (int[6,5] a) {

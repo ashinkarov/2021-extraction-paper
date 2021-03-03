@@ -27,7 +27,7 @@ prover.
 
 APL is a language that pioneered the concept of rank- and shape-polymorphic
 programming.  Expressions in APL are written in index-free combinator style
-with very few syntactic rules.  The language is dynamically typed, and
+with few syntactic rules.  The language is dynamically typed, and
 each combinator is an operation on (multi-dimensional) arrays.  Consider
 the following (valid) APL expression:
 \begin{flushleft}
@@ -52,7 +52,7 @@ left ({\apl{¯1 ⌽ a}}), then one element to the right
 ({\apl{+}}), and then dividing each element by two ({\apl{2 ÷⍨}}).
 APL expressions such as this one are applicable to \apl{a} of \emph{any} rank, including
 zero-dimensional arrays.
-Not only the initial set of APL combinators found very useful in practice,
+Not only the initial set of APL combinators found useful in practice,
 but it also gives rise to the number of universal equalities such as
 \apl{(-x) ⌽ x ⌽ a ≡ a}, which says: if we first rotate vectors in the last
 axis of \apl{a} by \apl{x} elements in one direction and then rotate by \apl{x}
@@ -67,7 +67,7 @@ The semantics of each APL operator is heavily
 overloaded: the same symbol has different meanings
 depending on how many arguments are being passed and what these arguments
 are, \ie{} their shapes, sign, \etc{}.  For example, consider the
-\apl{/} (slash) symbol, which can be used in the following ways:
+\apl{/} (slash) symbol that can be used in the following ways:
 \[
 \begin{tabular}{ll}
   \apl{ +/a    } & sum array elements, \apl{+} is an argument   \\
@@ -228,7 +228,7 @@ Here we demonstrate the lifting \AF{\_+\_} for natural numbers.
 \end{code}
 %We define \AF{\_+\_} as lifted version of the addition on natural
 numbers.  In this example, \AF{a} is a 3-d array, and \AF{z} is a
-scalar.  We can see that the lifted addition on arrays admit all the
+scalar.  The lifted addition on arrays admits all the
 desired variants.  The last three examples on the right show that it
 still works for the cases when the rank is not known statically.
 
@@ -303,7 +303,7 @@ code accompanying this paper, we define a similar \AD{lift} function
 that extends the domain of the lifted binary operation and to accept
 base types, vectors and arrays, and their combinations.
 
-\subsection{CNN}
+\subsection{CNN} \label{sec:cnn}
 As a practical application, we consider a convolutional
 neural network for recognising hand-written digits, implemented in APL.
 The reference implementation we start from~\cite{cnninapl} is
@@ -377,7 +377,7 @@ proofs and it normalises to a single \AC{imap}.
 \paragraph{Mean Squared Error}
 The nice behaviour of the above function is not really surprising since
 it just maps scalar operations over individual array
-elements.  However, this is a very common pattern in array-based
+elements.  However, this is a common pattern in array-based
 applications.  Here is another example that is used to compute the mean
 error which is a sum of squared elements divided by two:
 % \begin{code}
