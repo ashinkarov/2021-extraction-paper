@@ -21,7 +21,7 @@ module APL where
 In this section we consider the embedding of an
 APL subset that is large enough to port the implementation
 of a convolutional neural network~\cite{cnninapl}.  APL presents an interesting case
-for our approach as it because it introduces the notions that are
+for our approach as it introduces the notions that are
 difficult to express in Agda, and presumably any other existing theorem
 prover.
 
@@ -66,7 +66,7 @@ be used as rewrite rules for automatic program transformations.
 The semantics of each APL operator is heavily
 overloaded: the same symbol has different meanings
 depending on how many arguments are being passed and what these arguments
-are, \ie{} their shapes, sign, \etc{}.  For example, consider the
+are, \ie{} their shapes, sign, \etc{}  For example, consider the
 \apl{/} (slash) symbol that can be used as follows:
 \[
 \begin{tabular}{ll}
@@ -299,7 +299,7 @@ types of different shapes.  This still does not solve the problem of
 implicit casts from base types such as \AD{ℕ} and vectors into arrays.
 However, this can be solved by defining regular instances.  In the
 code accompanying this paper, we define a similar \AD{lift} function
-that extends the domain of the lifted binary operation and to accept
+that extends the domain of the lifted binary operation and accepts
 base types, vectors and arrays, and their combinations.
 
 \subsection{A Convolutional Neural Network} \label{sec:cnn}
@@ -407,7 +407,7 @@ However, we had to supply the addition on floats
 and vectors of floats \AF{\_+ᵣ\_}, because otherwise
 Agda fails to instantiate hidden arguments to \AF{\_+ᵣ\_}.  Finally,
 partial application of division on the right \apl{÷∘2} is a built-in
-feature of mix-fix operators in Agda.
+feature of mixfix operators in Agda.
 
 
 \paragraph{Back Average Pool}
