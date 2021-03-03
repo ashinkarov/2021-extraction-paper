@@ -44,7 +44,7 @@ the following (valid) APL expression:
 % \end{verbatim}
 % }%
 % %\noindent{}
-that computes a two-point convolution of the array {\apl{a}} using cyclic
+It computes a two-point convolution of the array {\apl{a}} using cyclic
 boundaries.  This is done by
 first rotating vectors along the last axis of {\apl{a}} one element to the
 left ({\apl{¯1 ⌽ a}}), then one element to the right
@@ -52,7 +52,7 @@ left ({\apl{¯1 ⌽ a}}), then one element to the right
 ({\apl{+}}), and then dividing each element by two ({\apl{2 ÷⍨}}).
 APL expressions such as this one are applicable to \apl{a} of \emph{any} rank, including
 zero-dimensional arrays.
-Not only the initial set of APL combinators found useful in practice,
+Not only has the initial set of APL combinators been found useful in practice,
 but it also gives rise to the number of universal equalities such as
 \apl{(-x) ⌽ x ⌽ a ≡ a}, which says: if we first rotate vectors in the last
 axis of \apl{a} by \apl{x} elements in one direction and then rotate by \apl{x}
@@ -62,12 +62,12 @@ arithmetic facts, yet they give a powerful reasoning technique and they can
 be used as rewrite rules for automatic program transformations.
 
 
-\subsection{Embedding}
+\subsection{Embedding of APL}
 The semantics of each APL operator is heavily
 overloaded: the same symbol has different meanings
 depending on how many arguments are being passed and what these arguments
 are, \ie{} their shapes, sign, \etc{}.  For example, consider the
-\apl{/} (slash) symbol that can be used in the following ways:
+\apl{/} (slash) symbol that can be used as follows:
 \[
 \begin{tabular}{ll}
   \apl{ +/a    } & sum array elements, \apl{+} is an argument   \\
@@ -104,8 +104,8 @@ These are special kind of implicit arguments that are resolved using
 instance resolution, achieving a similar effect as
 classes and instances in Haskell.
 %
-In our case, we define a binary relation \AD{dy-args}
-between the ranks and shapes of the arguments and the result of
+In our case, we define a relation \AD{dy-args}
+between the ranks and shapes of the arguments of
 the binary operation:
 \begin{code}
   data dy-args : ∀ m n → Vec ℕ m → Vec ℕ n → Set where
@@ -113,7 +113,7 @@ the binary operation:
     n-0 : ∀ {n s} → dy-args n 0 s  []
     0-n : ∀ {n s} → dy-args 0 n [] s
 \end{code}
-The constuctors of \AD{dy-args} specify valid ways of calling
+The constructors of \AD{dy-args} specify valid ways of calling
 a binary operation: either the shapes are identical, or one of
 them is a scalar (rank zero, shape empty).
 %
@@ -123,14 +123,14 @@ arguments.  In this case all three instances fit, but Agda can only
 accept a unique solution.  Ironically, in this case, all the three
 instances would lead to the same correct result.
 
-We can solve this problem by using metaprogramming:
-we define a macro that can be registered to resolve a given
+We solve this problem by using metaprogramming:
+we define a macro and use it to resolve a given
 hidden argument.  Within the macro, we are free to make arbitrary
 choices in case of non-unique solutions. Concretely, we
 define a macro \AF{dy-args-ok?} that tries to construct an element
 of type $\AD{dy-args}~m~n~\AB{sx}~\AB{sy}$.
 %
-We can then define a lifting function for binary operations as follows:
+We then define a lifting function for binary operations as follows:
 \begin{code}
   dy-args-dim : ∀ {m n sx sy} → dy-args m n sx sy → ℕ  -- pick the largest rank
   dy-args-shp : ∀ {m n sx sy} → (dy : dy-args m n sx sy) → Vec ℕ (dy-args-dim dy)
@@ -173,8 +173,8 @@ We can then define a lifting function for binary operations as follows:
 \end{code}
 We define the \AF{dy-args-dim} and \AF{dy-args-shp} to pick the largest
 rank and shape from the arguments that are related by \AF{dy-args}.
-Finally, the \AF{lift′}
-function turns any binary operation on array elements
+The \AF{lift′}
+function itself turns any binary operation on array elements
 into a binary operation on arrays that replicates scalars correctly.
 Here we demonstrate the lifting \AF{\_+\_} for natural numbers.
 \begin{code}[hide]
@@ -226,8 +226,7 @@ Here we demonstrate the lifting \AF{\_+\_} for natural numbers.
   a = imap λ iv → 10
   z = imap λ iv → 20
 \end{code}
-%We define \AF{\_+\_} as lifted version of the addition on natural
-numbers.  In this example, \AF{a} is a 3-d array, and \AF{z} is a
+In this example, \AF{a} is a 3-d array, and \AF{z} is a
 scalar.  The lifted addition on arrays admits all the
 desired variants.  The last three examples on the right show that it
 still works for the cases when the rank is not known statically.
@@ -303,7 +302,7 @@ code accompanying this paper, we define a similar \AD{lift} function
 that extends the domain of the lifted binary operation and to accept
 base types, vectors and arrays, and their combinations.
 
-\subsection{CNN} \label{sec:cnn}
+\subsection{A Convolutional Neural Network} \label{sec:cnn}
 As a practical application, we consider a convolutional
 neural network for recognising hand-written digits, implemented in APL.
 The reference implementation we start from~\cite{cnninapl} is
@@ -345,7 +344,7 @@ module CNN where
 
 
 \paragraph{Logistic function}
-After the convolution and fully-connected layers in our CNN, the
+After the convolution and fully-connected layers in the CNN, the
 activation function is applied to each of the results.  The activation
 function in use is called the standard logistic function
 \(
@@ -399,11 +398,11 @@ a binary function that performs the actual operation.  We have a
 flattened (\AF{,\_}) square of differences on the right, and
 addition on \AD{Float}s on the left.  We need to flatten the
 array on the right because according to the APL semantics, \AF{\_/\_} reduces
-over the last axis of the array.  Also, in comparison to reductions
+over the last axis of the array.  Also, in contrast to reductions
 found in many functional languages, APL does not require the default
 element but deduces it from the operation
-in use.  We have encoded the same behaviour using instance resolution
-mechanism.  However, we had to supply the addition on floats
+in use.  We have encoded the same behaviour using instance resolution.
+However, we had to supply the addition on floats
 \AF{\_+ᵣ′\_}, rather than our generalised addition on the arrays
 and vectors of floats \AF{\_+ᵣ\_}, because otherwise
 Agda fails to instantiate hidden arguments to \AF{\_+ᵣ\_}.  Finally,
@@ -456,16 +455,16 @@ Here is the implementation:
 \begin{code}
   avgpool : ∀ {s} → Ar Float 2 $ ▾ (s × 2) → Ar Float 2 s
   avgpool {s} (imap p) = imap $ λ iv →
-    let ix , ix<s = ix→a iv
-        q = λ (i , pf) → p $ a→ix ((ix × 2) + i) (s × 2) (A<B⇒K<2⇒A*2+K<B*2 ix<s pf)
-        [2,2] = cst {s = 2 ∷ []} 2
+    let ix , ix<s  = ix→a iv
+        q          = λ (i , pf) → p $ a→ix ((ix × 2) + i) (s × 2) (A<B⇒K<2⇒A*2+K<B*2 ix<s pf)
+        [2,2]      = cst {s = 2 ∷ []} 2
     in ▾ (_÷ᵣ 4.0 $ _+ᵣ′_ / , q ¨ ι [2,2])
 \end{code}
 %}
 %\end{mathpar}
 In this example, a direct
-implementation that uses indexing is actually more straight-forward than
-the one expressed in index-free style.  The result of average
+implementation that uses indexing is actually more straightforward than
+one expressed in index-free style.  The result of average
 pooling is given by the \AC{imap}. Reading the body of the \AC{imap} right to left,
 we obtain an array of indices (\AF{ι\_})
 into a two-dimensional array of shape [2,2].  Then for each element (\AF{\_¨\_})
