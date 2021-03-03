@@ -45,7 +45,7 @@ we instead aim for a more lightweight approach.
 \citet{deepshallow} propose to solve this problem with
 a combination of deep and shallow embeddings.  Their idea is to define
 a small deep embedding and leverage type classes in Haskell to define
-the rest of the langauge on top of that.  It would be interesting to see
+the rest of the language on top of that.  It would be interesting to see
 whether such an approach scales to dependently-typed embedded
 languages.
 
@@ -55,7 +55,7 @@ languages.
 
 \paragraph{Extraction}
 The Coq proof assistant is equipped with extraction
-capabilites~\cite{10.1007/978-3-540-69407-6_39,10.1007/3-540-39185-1_12},
+capabilities~\cite{10.1007/978-3-540-69407-6_39,10.1007/3-540-39185-1_12},
 which extracts functional code from Coq proofs (or programs).  The
 default target language is Ocaml, but a few other options were added
 recently.
@@ -99,7 +99,7 @@ reason about preservation of semantics (which we can't do yet), it is unclear
 whether their approach scales to dependently-typed embedded languages.
 
 \paragraph{Arrays}
-Using dependent types to verify properties of array programms
+Using dependent types to verify properties of array programs
 is not a novel idea.  For example, Qube~\cite{TROJAHNER2009643}
 and Remora~\cite{10.1007/978-3-642-54833-8_3} are dependently
 typed languages that are focused on array programming.  Both
