@@ -365,7 +365,7 @@ itself dependently typed.
 
 In this paper we consider an approach that combines the benefits of
 the two aforementioned solutions. We use a shallow embedding of the
-target langauge and rely on \emph{compile-time
+target language and rely on \emph{compile-time
 metaprogramming} to define custom extractors, making it possible to
 write a verified program hand-in-hand with an executor for it --- all
 within a single environment.  No need to touch internals of the host
@@ -447,7 +447,7 @@ Our proposed approach has several advantages:
 
 We implement extractors for Kaleidoskope~\cite{kaleidoscope} (Section~\ref{sec:basic-extr})
 and SaC~\cite{sac} (Section~\ref{sec:array}) in Agda.
-The former is a minimalist langauge that we use to demonstrate the basic
+The former is a minimalist language that we use to demonstrate the basic
 extraction principles.  The latter is a high-performance
 array language that generates efficient code for various architectures, but
 it has a restrictive type system.  Our SaC embedding guarantees
@@ -474,7 +474,7 @@ The key contributions of this paper are:
             of datatype parameters (Section~\ref{sec:embedded-array-lang}).
     \item We implement extractors for two languages: Kaleidoscope (Section~\ref{sec:basic-extr})
             and SaC (Section~\ref{sec:array}).  We use the latter as a basis for embedding
-            a subset of APL (Section~\ref{sec:apl}).\@
+            a subset of APL (Section~\ref{sec:apl}).
     \item We demonstrate how the proposed embeddings can be used
             by encoding a real-world application and ensuring that
             it extracts correctly (Section~\ref{sec:cnn}).
