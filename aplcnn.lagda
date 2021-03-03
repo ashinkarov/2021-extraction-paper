@@ -54,8 +54,8 @@ APL expressions such as this one are applicable to \apl{a} of \emph{any} rank, i
 zero-dimensional arrays.
 Not only the initial set of APL combinators found very useful in practice,
 but it also gives rise to the number of universal equalities such as
-\qquad\apl{(-x) ⌽ x ⌽ a ≡ a}, which says: if we first rotate vectors in the last axis of \apl{a}
-\apl{x} elements in one direction and then rotate by \apl{x}
+\apl{(-x) ⌽ x ⌽ a ≡ a}, which says: if we first rotate vectors in the last
+axis of \apl{a} by \apl{x} elements in one direction and then rotate by \apl{x}
 elements in the opposite direction, we will always get back the same array.
 These universal equalities are based on simple
 arithmetic facts, yet they give a powerful reasoning technique and they can
@@ -353,7 +353,7 @@ function in use is called the standard logistic function
 \), and it is being applied to all the elements of the resulting
 array.  Here is the implementation in APL and in our embedding:
 \begin{mathpar}
-\codeblock{\apl{logistic←{÷1+*-⍵}}}
+\codeblock{\apl{logistic←\{÷1+*-⍵\}}}
 \and\codeblock{\begin{code}
   logistic : ∀ {n s} → Ar Float n s → Ar Float n s
   logistic ω = ÷ᵣ 1.0 +ᵣ *ᵣ -ᵣ ω
@@ -386,7 +386,7 @@ error which is a sum of squared elements divided by two:
 %  backbias ω = _+ᵣ′_ / , ω
 % \end{code}
 \begin{mathpar}
-\codeblock{\apl{meansqerr←{÷∘2+/,(⍺-⍵)*2}}} \and
+\codeblock{\apl{meansqerr←\{÷∘2+/,(⍺-⍵)*2\}}} \and
 \codeblock{\begin{code}
   meansqerr : ∀ {n s} → Ar Float n s → Ar Float n s → Scal Float
   meansqerr α ω = _÷ᵣ 2.0 $ _+ᵣ′_ / , (α -ᵣ ω) ×ᵣ (α -ᵣ ω)
@@ -416,7 +416,7 @@ The reverse average pooling function requires us to specify
 a shape restriction: the shape of the result must be twice
 as big  as the shape of the input array (in every dimension).
 \begin{mathpar}
-\codeblock{\apl{backavgpool←{2⌿2/⍵÷4}⍤2}} \and
+\codeblock{\apl{backavgpool←\{2⌿2/⍵÷4\}⍤2}} \and
 \codeblock{\begin{code}
   backavgpool : ∀ {s} → Ar Float 2 s → Ar Float 2 $ ▾ (2 × s)
   backavgpool {s = _ ∷ _ ∷ []} ω = 2 ⌿ᵣ 2 /ᵣ′ ω ÷ᵣ 4.0
@@ -447,20 +447,22 @@ two-dimensional array of floats as an argument, where each axis
 is divisible by two.  It partitions the array into sub-arrays
 of shape [2,2] and computes the average of each partition.
 Here is the implementation:
-\begin{mathpar}
-\codeblock{
-\apl{avg ← { (+/÷≢),⍵ }} \\
-\apl{avgpool ← { (x y) ← ⍴⍵ ⋄ avg⍤2 ⊢ 0 2 1 3⍉(x÷2) 2 (y÷2) 2⍴ ⍵ }}
-} \and
-\codeblock{\begin{code}
+%\begin{mathpar}
+%\codeblock{
+\apl{avg ← \{ (+/÷≢),⍵\} } \\
+\apl{avgpool ← \{ (x y) ← ⍴⍵ ⋄ avg⍤2 ⊢ 0 2 1 3⍉(x÷2) 2 (y÷2) 2⍴ ⍵ \}}\\
+%} \and
+%\codeblock{
+\begin{code}
   avgpool : ∀ {s} → Ar Float 2 $ ▾ (s × 2) → Ar Float 2 s
   avgpool {s} (imap p) = imap $ λ iv →
     let ix , ix<s = ix→a iv
-        f = λ (i , pf) → p $ a→ix ((ix × 2) + i) (s × 2) (A<B⇒K<2⇒A*2+K<B*2 ix<s pf)
+        q = λ (i , pf) → p $ a→ix ((ix × 2) + i) (s × 2) (A<B⇒K<2⇒A*2+K<B*2 ix<s pf)
         [2,2] = cst {s = 2 ∷ []} 2
-    in ▾ (_÷ᵣ 4.0 $ _+ᵣ′_ / , f ¨ ι [2,2])
-\end{code}}
-\end{mathpar}
+    in ▾ (_÷ᵣ 4.0 $ _+ᵣ′_ / , q ¨ ι [2,2])
+\end{code}
+%}
+%\end{mathpar}
 In this example, a direct
 implementation that uses indexing is actually more straight-forward than
 the one expressed in index-free style.  The result of average
@@ -472,9 +474,9 @@ we sum the elements up and divide them by \AN{4.0}.  The indices
 returned by (\AF{ι\_}) are dependent pairs where the first component
 is a 1-dimensional array representing the value of the index, and the
 second component is a proof that the index is strictly less than the
-array shape (in our case [2,2]).  In \AF{f}, we pattern-match
+array shape (in our case [2,2]).  In \AB{q}, we pattern-match
 on the pair, and we compute selection into the argument of \AF{avgpool}
-at index $2iv+i$.  The final argument to \AF{f} is a proof that this
+at index $2iv+i$.  The final argument to \AB{q} is a proof that this
 index is within the bounds of the array.
 
 Here we consider the extraction of \AF{avgpool} into \sac{}, slightly reformatted
@@ -503,7 +505,7 @@ float[.,.] avgpool(int[2] x_1, float[.,.] x_3) {
 }
 \end{lstlisting}
 In the extracted code, all the
-local definitions (\AF{body} and \AF{f}) are inlined, as well as
+local definitions are inlined, as well as
 all the compound array operations.  We are very close to the code
 that a programmer could write.
 %

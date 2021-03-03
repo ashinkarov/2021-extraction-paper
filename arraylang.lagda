@@ -400,7 +400,10 @@ library for all the supported base types such as int, float, \etc{}
 Array shapes in Agda are represented by the \AD{Vec} type, whereas
 SaC shapes are 1-dimensional arrays.  Mapping a vector type is
 straight-forward, as we only need to implement nil/cons to construct
-vectors and head/tail to eliminate them:
+vectors and head/tail to eliminate them\footnote{Here we show
+  1-dimensional versions of the functions, but in reality we
+  implement rank-polymorphic cons/hd/tail using the idea
+  similar to \texttt{sel} from above.}:
 \begin{lstlisting}
 int[.] cons (int x, int[.] xs) {          int[.] tl (int[.] xs) {
   return with {                             return with {

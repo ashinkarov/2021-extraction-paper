@@ -18,7 +18,7 @@ of metaprogramming to Smith's work on reflection in Lisp~\cite{refl-lisp}.
 %interpreters~\cite{futurama}, and modular staging~\cite{lms}.
 %
 Some prominent metaprogramming systems include
-MetaOcaml~\cite{metaocaml}, MetaMK~\cite{metaml},
+MetaOcaml~\cite{metaocaml}, MetaML~\cite{metaml},
 reFlect~\cite{DBLP:journals/jfp/GrundyMO06},
 %However, often the main motivation of these systems is to generate
 %new code, and not to travaerse or modify existing code.

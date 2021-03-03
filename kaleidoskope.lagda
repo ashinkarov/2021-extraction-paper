@@ -193,12 +193,12 @@ describe invariants we also support the type  \AD{Fin n} of natural number
 strictly less than \AD{n}, as well as the identity type
 \AD{\_≡\_} and the inequality type \AD{\_<\_} on natural numbers.
 The \AD{Fin} type is mapped to numbers in the target language, while
-all proofs of \AD{\_≡\_} and \AD{\_<\_} are mapped to the constant \AS{1}.
+all proofs of \AD{\_≡\_} and \AD{\_<\_} are mapped to the constant \AN{1}.
 We also allow the decidability predicates
 \AD{Dec (a ≡ b)} and \AD{Dec (a < b)}, which carry a boolean
 value and a proof that the relation holds or does not hold,
 depending on the value of the boolean.
-We map \AC{true} to \AS{1} and \AC{false} to \AS{0}, ignoring the proof. First order
+We map \AC{true} to \AN{1} and \AC{false} to \AN{0}, ignoring the proof. First order
 functions of the above types such as basic arithmetic \AD{\_+\_}, \AD{\_-\_},\ldots
 are mapped to corresponding functions in the target language.
 
@@ -235,8 +235,9 @@ not only types and terms of the embedded language, but also contexts
 and explicit substutions, turning even the simplest programs into
 large and non-trivial terms. It is still an open question whether
 there exists a satisfying middle ground between shallow and
-deep embedding (see Section~\ref{sec:related} for related work in
-this direction).
+deep embedding.
+%(see Section~\ref{sec:related} for related work in
+% this direction).
 
 Our solution in this paper is to avoid the encoding problem entirely
 and rely instead on metaprogramming to extract a subset of Agda into
@@ -292,7 +293,7 @@ about strings or tuples, and hence can be extracted safely.
 
 
 Such a simplification can be conveniently achieved by
-normalising the terms, i.e.~by applying reduction rules to (sub)terms until
+normalising the terms, \ie{}~by applying reduction rules to (sub)terms until
 they turn into values or neutral terms.
 %
 %\subsubsection{Telescopes}
@@ -534,7 +535,7 @@ the type system may not hold.  For example, given
 \begin{code}[hide]
   f = ⋯
 \end{code}, its first argument must not be zero.  However, as \AB{x} \AF{>}
-\AS{0} cannot be represented, external calls may pass zero to
+\AN{0} cannot be represented, external calls may pass zero to
 the extracted version of \AF{f}.
 
 In the case for \AF{Fin} in the definition of \AF{kompile-ty}, we
@@ -592,7 +593,7 @@ treated in exactly the same way.
 %%\end{code}
 %  However, in the extracted code, the relation
 % between the first and the second argument will be lost, and \AF{f} may
-% be called with \AS{0} as a first argument.  Assertions would prevent
+% be called with \AN{0} as a first argument.  Assertions would prevent
 % this by turning a static check into a dynamic one.
 
 
@@ -608,10 +609,10 @@ Now, for decidable relations, we can entirely avoid encoding the proof
 object, as long as the computational behaviour of the function does not
 depend on the structure of the proof. This is in particular always the
 case for proof-irrelevant types such as \AD{\_≡\_} and \AD{\_<\_}.
-We encode the elements of these types with the unit value (natural number \AS{1}).
+We encode the elements of these types with the unit value (natural number \AN{1}).
 We then generate an assertion that uses the decision procedure. This
 decision procedure returns an element of the \AD{Dec} type
-which we interpret as a boolean value: \AS{1} for \AC{yes} and 0 for \AC{no}.
+which we interpret as a boolean value: \AN{1} for \AC{yes} and 0 for \AC{no}.
 %Pattern matching on the value of \AD{\_≡\_} is straight-forward as there
 %is only one constructor.  Constructors of \AD{\_<\_}
 %essentially encode the difference between the arguments, which we
@@ -756,7 +757,7 @@ monad.  The function traverses clauses in the order they appear
 in the definition and combines them in a nested if-then-else chain as
 in the following example:
 \begin{code}
-  ack : ℕ → ℕ → ℕ                                  -- def ack (x1, x2):
+  ack : ℕ → ℕ → ℕ                                   -- def ack (x1, x2):
   ack 0       n        = 1 + n                      --   if x1 == 0: 1 + x2
   ack (suc m) 0        = ack m 1                    --   else if x1 > 0 && x2 == 0: ack (x1-1) 1
   ack (suc m) (suc n)  = ack m (ack (suc m) n)      --   else: ack (x1-1) (ack x1 (x2-1))
@@ -855,12 +856,12 @@ when the encoded value in the target language represents the value
 that was built using the given constructor.  For example, as we
 represent \AF{Fin} with natural numbers, the conditions for matching
 \AB{e} against a pattern \AC{zero} \{\AB{ub}\} constructor is \AB{e}
-\AF{==} \AS{0} (note that the precondition generated from the type of
+\AF{==} \AN{0} (note that the precondition generated from the type of
 \AB{e} already enforces that \AB{e} \AF{<} \AB{ub}, so we do not need
 to check it again).
 %
 Correspondingly, the pattern \AC{suc} \{\AB{ub}\} \AB{x} yields the condition
-\AB{e} \AF{>} \AS{0}.
+\AB{e} \AF{>} \AN{0}.
 %
 The \AF{pst-fresh} function generates a variable with the unique
 (within the clause) name, and \AF{\_+=c\_} adds the new condition to
@@ -1053,7 +1054,7 @@ treatment.  We first ensure that argument list is non-empty: the \AF{\_ ∷ \_} 
 Then we add the name of the function into the \AR{funs} field of the state record,
 which is used by \AF{kompile} to extract all the necessary dependencies.
 Then we extract the arguments, using
-the helper function \AF{mk-iota-mask} that generates indices from \AS{0} to the
+the helper function \AF{mk-iota-mask} that generates indices from \AN{0} to the
 length of the argument list.  Finally we create an \AD{Expr}ession for a function
 call.  We use the extracted arguments and we normalise the name to get rid of
 unicode symbols.
