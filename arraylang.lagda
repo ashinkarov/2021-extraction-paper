@@ -71,7 +71,7 @@ it would be useful to specify matrix multiplication as:
 \begin{lstlisting}
   int[m,n] matmul (int[m,k], int[k,n])
 \end{lstlisting}
-Unfortunately, this cannot be expressed as there is no notion of type-level varibales.
+Unfortunately, this cannot be expressed as there is no notion of type-level variables.
 %
 This becomes even more problematic for functions like \texttt{take} or \texttt{drop} below:
 \begin{lstlisting}
@@ -242,7 +242,7 @@ body of \AF{ex} normalises into a single \AC{imap}.
 %
 This is largely possible because we defined \AD{Ar} as a record,
 and these are guaranteed to preserve $\eta$-equality.  That is,
-every \AB{x} : \AD{Ar} \AB{d} \AB{s} is \emph{definitionaly} equal
+every \AB{x} : \AD{Ar} \AB{d} \AB{s} is \emph{definitionally} equal
 to \AC{imap} (\AR{sel} \AB{x}).
 
 During the implementation of our extractor for \sac{} in Agda, we
