@@ -93,7 +93,7 @@ map/reduce construct.  Consider an example of matrix multiplication:
   int[.,.] matmul (int[.,.] a, int[.,.] b) {
     M = shape(a)[0]; K = shape(a)[1]; N = shape(b)[1];
     return with {
-      ([0,0] <= [i,j] < [M,N]): sum (with {
+      ([0,0] <= [i,j] < [M,N]): with {
          ([0] <= [k] < [K]): a[[i,k]]*b[[k,j]];
       }: fold (+, 0);
     }: genarray ([M,N], 0);
@@ -162,7 +162,7 @@ In some sense \AD{Ar} and \AD{Ix} are second-order versions of \AD{Vec}
 and \AD{Fin}.  This could be also thought of as a
 computational interpretation of the Mathematics of Arrays~\cite{LMRMullin:moa}
 (where $\Psi$ becomes an array constructor), or as a generalisation of
-pull arrays~\cite{pushpull}.
+pull arrays~\cite{pushpull}, or as simple containers~\cite{DBLP:journals/jfp/AltenkirchGHMM15}.
 
 This encoding intrinsically guarantees that all the array accesses are within
 bounds.
@@ -177,7 +177,7 @@ As for \texttt{fold}
 \texttt{with}-loops, there is no need for a special construct:
 we can define
 a recursive function (analogous to reduce on \AD{Vec}), and let the extractor
-translate it into the corresponding fold \texttt{fold} \texttt{with}-loop.
+translate its applications into the corresponding \texttt{fold} \texttt{with}-loop.
 
 Consider now the matrix multiplication example expressed in the embedded
 language:
@@ -238,7 +238,7 @@ we had to apply a proof (\AF{reverse-inv}) that reversing an
 index is involutive.  The body of \AF{ex} is given as four
 operations on the entire arrays, conceptually creating a new copy
 of an array at every application.  Due to our encoding, the
-the body of \AF{ex} normalises into a single \AC{imap}.
+body of \AF{ex} normalises into a single \AC{imap}.
 %
 This is largely possible because we defined \AD{Ar} as a record,
 and these are guaranteed to preserve $\eta$-equality.  That is,
