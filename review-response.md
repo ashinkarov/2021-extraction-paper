@@ -10,7 +10,8 @@ questions.
 
 Our main objective is to demonstrate how to define a *dependently-typed DSL*
 without implementing a full typechecker, as you share one with Agda. Extraction
-allows us to translate our DSL to a target language for further execution. We
+allows us to translate our DSL to a target language for further execution.  This
+translation is expressed within Agda without necessity to modify the compiler.  We
 expect two possible scenarios: 1) translating an existing (dependently typed)
 DSL to target X; or 2) extend existing language X with dependent types. Both
 scenarios are possible by our approach, and are novel to the best of our
@@ -33,8 +34,8 @@ target language, and inserts assertions corresponding to the static guarantees
 of Agda's type system. Hence, given an extractor that preserves the dynamic
 semantics of the embedded language, soundness of the Agda type system
 guarantees that none of the inserted assertions will be triggered at run-time.
-When only part of a program is extracted from Agda, assertions can only fire at
-the boundaries with unsafe code.
+When only part of a program is extracted from Agda (which is perfectly possible),
+assertions can only fire at the boundaries with unsafe code.
 
 Correctness of our approach thus relies on the preservation of the dynamic
 semantics by the extractor code. Ideally we would like to prove this as a
@@ -68,8 +69,6 @@ for this paper we did not have to address it in third person. We apologize if
 this differs from the intended interpretation.
 
 
-
-
 # Part2: Remaining concerns
 
 ## Review #150A
@@ -82,14 +81,14 @@ this differs from the intended interpretation.
 > your Kaleidoscope example?  What are its key properties?  Can they be
 > expressed as theorems within (or possibly outside) Agda?
 
-Reflection based extractor for the Kaleidoscope language is define in
+Reflection based extractor for the Kaleidoscope language is defined in
 `agda-extractor/Kaleid.agda` and it purpose is to translate the chosen
 subset of Agda to Kaleidoscope language.  The key properties of the translator
 is the preservation of dependent types such as Fin, `_<_`, `_>_`, 
 equivalence/inequivalence of natural numbers in the generated code via
 assertions.  Essentially, we have extended the original formulation of
-the Kaleidoscope with dependent types.  E.g. in our log2 example we ensure
-that the no dvivision by zero is possible, and we also ensure that the
+the Kaleidoscope to include dependent types.  E.g. in our log2 example we ensure
+that the dvivision by zero is impossible, and we also ensure that the
 function terminates (as each Agda function has to terminate).
 
 > Another key contribution is a set of changes to Agda, described in three
@@ -104,27 +103,29 @@ See part 1.
 > SaC.
 
 As our main goal was to demonstrate the mere possibility of embedding
-non-trivial languages, we didn't pay much attention to the performance aspect
-of the extracted code, as in some sense it is orthogonal to the process.
-However, as our code carefully follows this paper:
+non-trivial languages, we didn't focus too much on the performance aspect
+of the extracted code in the text of the paper.  In some sense it is orthogonal
+to the extraction process.  However, our code carefully follows this paper:
 https://dl.acm.org/doi/10.1145/3315454.3329960
-The paper includes the SaC version of the CNN application, and we create
+The paper includes the SaC version of the CNN application, and we created
 our extractor to produce the code that is as close as possible to the existing
 SaC code.  Unsurprisingly, performance of the SaC code that we generate is
 almost identical to the performance of the SaC code reported in the paper:
 it is 15 and 24 times faster for training and recognition correspondingly,
-when comparing to APL.  However, this result cannot be treated as an exhaustive
+when comparing to APL (recall that APL runs in an interpreter, but SaC is
+a compiled language).  However, this result cannot be treated as an exhaustive
 set of measurements, as it is coming from a single example on a single machine.
 
 > Can you say anything about what's like to program in these shallow
 > embeddings?  Are the error messages readable?  Could they be customised to
 > the embedded language?
 
-There are two types of messages that are happening: i) Agda error messages that
+There are two types of error messages that can be triggered: i) Agda error messages that
 can't be specific to the embedded DSL; ii) error messages coming from the extractor.
-The latter is fully programmable, and as Agda gives basic capabilities to format
+The latter is fully programmable; and as Agda gives basic capabilities to format
 terms and report a custom error, these can be made as precise as needed by the
-author of the extractor.
+author of the extractor.  Practically, as long as functions are reasonably sized
+(as in our case) the error messages are readable.
 
 > Since their deep versus shallow terminology is in the title, you should cite
 > the paper that originated the distinction between deep and shallow
@@ -156,7 +157,7 @@ semantics.
 >   type system.
 
 This is more "correct-by-construction programming" rather than classical verification.
-As dependent types can encode virtually any constraints on terms, the type system
+As dependent types can encode virtually any constraints on terms, and the type system
 guarantees that these hold statically, and extractor preserves (modulo extractor
 correctness) these constraints in the generated code, we can talk about a verified
 program.
@@ -186,7 +187,7 @@ See Part 1.
 Additionally to explanations in Part 1, all the three languages share Agda's semantics.
 However, it happened so, that many Kaleidoscope and SaC constructs, such as Nat,
 arithmetic expressions, functions, etc. are also built-in Agda's constructs.
-Therefore, there is no obvious Agda function that implements some embedded structure.
+Therefore, there is no obvious Agda function that implements some embedded structures.
 However, reflection makes the entire Agda AST available, therefore as long as
 Agda terms have semantics, so does the embedding.
 
