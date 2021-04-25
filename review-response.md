@@ -72,66 +72,68 @@ this differs from the intended interpretation.
 
 # Part2: Remaining concerns
 
--- XXX stopped here XXX ---
 
+> For the author response, please respond to the next two paragraphs
+> especially.
+> 
+> Your key contribution is the idea of a "reflection-based extractor" for a
+> "shallowly-embeddable language".  What is the reflection-based extractor for
+> your Kaleidoscope example?  What are its key properties?  Can they be
+> expressed as theorems within (or possibly outside) Agda?
 
-ICFP 2021 Paper #150 Reviews and Comments
-===========================================================================
-Paper #150 Choosing is Losing: How to combine the benefits of shallow and
-deep embeddings through reflection
+Reflection based extractor for the Kaleidoscope language is define in
+`agda-extractor/Kaleid.agda` and it purpose is to translate the chosen
+subset of Agda to Kaleidoscope language.  The key properties of the translator
+is the preservation of dependent types such as Fin, `_<_`, `_>_`, 
+equivalence/inequivalence of natural numbers in the generated code via
+assertions.  Essentially, we have extended the original formulation of
+the Kaleidoscope with dependent types.  E.g. in our log2 example we ensure
+that the no dvivision by zero is possible, and we also ensure that the
+function terminates (as each Agda function has to terminate).
 
+> Another key contribution is a set of changes to Agda, described in three
+> sections of the paper: 3.4, 3.5, and 4.2, each of which refer to pull
+> requests. Can you describe the changes in terms of general principles that
+> could apply in other settings?
 
-Review #150A
-===========================================================================
+See part 1.
 
-Overall merit
--------------
-C. I would not accept this paper but will not argue strongly against
-   accepting it.
+> How does the performance of the code extracted from the CNN model compare to
+> the orginal?  I think the original is in APL and the extracted code is in
+> SaC.
 
-Reviewer expertise
-------------------
-X. Expert
+As our main goal was to demonstrate the mere possibility of embedding
+non-trivial languages, we didn't pay much attention to the performance aspect
+of the extracted code, as in some sense it is orthogonal to the process.
+However, as our code carefully follows this paper:
+https://dl.acm.org/doi/10.1145/3315454.3329960
+The paper includes the SaC version of the CNN application, and we create
+our extractor to produce the code that is as close as possible to the existing
+SaC code.  Unsurprisingly, performance of the SaC code that we generate is
+almost identical to the performance of the SaC code reported in the paper:
+it is 15 and 24 times faster for training and recognition correspondingly,
+when comparing to APL.  However, this result cannot be treated as an exhaustive
+set of measurements, as it is coming from a single example on a single machine.
 
-Paper summary
--------------
-1 Introduction: the idea of developing embedded programs hand-in-hand with custom
-code generators for them.
-2 Background, mostly standard stuff on Agda.  A little on quote/unquote.
-3 Basic extraction, illustrated using Kaleidoscope, a minimalist 1st order language from the LLVM team.  Shows how to extract a Kaleidoscope program from an Agda term.  Example of the binary logarithm. Use of Agda rewrite rules.
-4 Embedding the array language SaC in Agda, and extracting to it.
-A key progression compared to 3 is that SaC has a sophisticated array type system, that can be represented (more or less) within Agda.
-5 Embeds a form of APL within Agda.  The embedding is not all of APL; one key concept retained is automatic casting of scalars to vectors and arrays for use with binary operators.
+> Can you say anything about what's like to program in these shallow
+> embeddings?  Are the error messages readable?  Could they be customised to
+> the embedded language?
 
-Pros and Cons
-+ new idea to embed DSL as a shallow embedding in Agda, but use reflection to access the syntax trees of the shallow embedding, a kind of deep embedding
-+ the shallow embedding allows properties to be type-checking, while reflection allows extraction of the verified program back to the original language
-+ three separate language examples: core language Kaleidoscope, array language SaC, and APL
-+ dependently typed array operations simply fall out of the encoding in the underlying system
-- no discussion of performance, eg, of the CNN
-- the general principles here are not expressed crisply, eg, as theorems
+There are two types of messages that are happening: i) Agda error messages that
+can't be specific to the embedded DSL; ii) error messages coming from the extractor.
+The latter is fully programmable, and as Agda gives basic capabilities to format
+terms and report a custom error, these can be made as precise as needed by the
+author of the extractor.
 
-Comments for author
--------------------
-Thanks for all your work on this paper.  I learnt from reading it.
+> Since their deep versus shallow terminology is in the title, you should cite
+> the paper that originated the distinction between deep and shallow
+> embeddings:
+> 
+> Richard J. Boulton, Andrew D. Gordon, Michael J. C. Gordon, John Harrison,
+> John Herbert, John Van Tassel: Experience with Embedding Hardware Description
+> Languages in HOL. TPCD 1992: 129-156
 
-Unfortunately, the main weakness to me is that there is no general theory or crisp principles here, although that may be a weakness in the presentation, rather than the underlying coding.
-
-For the author response, please respond to the next two paragraphs especially.
-
-Your key contribution is the idea of a "reflection-based extractor" for a "shallowly-embeddable language".  What is the reflection-based extractor for your Kaleidoscope example?  What are its key properties?  Can they be expressed as theorems within (or possibly outside) Agda?
-
-Another key contribution is a set of changes to Agda, described in three sections of the paper: 3.4, 3.5, and 4.2, each of which refer to pull requests. Can you describe the changes in terms of general principles that could apply in other settings?
-
-How does the performance of the code extracted from the CNN model compare to the orginal?  I think the original is in APL and the extracted code is in SaC.
-
-It is cool you can write APL formulas directly in Agda.
-
-Can you say anything about what's like to program in these shallow embeddings?  Are the error messages readable?  Could they be customised to the embedded language?
-
-Since their deep versus shallow terminology is in the title, you should cite the paper that originated the distinction between deep and shallow embeddings:
-
-Richard J. Boulton, Andrew D. Gordon, Michael J. C. Gordon, John Harrison, John Herbert, John Van Tassel: Experience with Embedding Hardware Description Languages in HOL. TPCD 1992: 129-156
+Of course, thank you for the reference, we are happy to include it in the paper.
 
 
 
