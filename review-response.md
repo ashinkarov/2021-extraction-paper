@@ -1,79 +1,73 @@
-# Structure of the response
 
-We would like to thank all the reviewers for their time and helpful comments!
-We structure our response in two parts.  First, we address common concerns raised
-by multiple reviewers; after that, we respond to the remaining individual
-comments and questions.
-
+We would like to thank the reviewers for their time and helpful comments. We
+will start this response by addressing common concerns raised by multiple
+reviewers; after that, we respond to the remaining individual comments and
+questions.
 
 # Part1: Common concerns
 
-## The main goal of the paper as we see it
+## The main objective (reviewer B)
 
-The main point of the paper is to demonstrate that it is possible to define
-a practically usable *dependently-typed DSL* without the necessity to
-implement a typechecker, as you share one with Agda.  Extraction gives
-us a way to define an arbitrary target language that we translate our DSL
-for further execution.  Two practical scenarios are possible: 1) I have a
-(dep.typed) DSL and I want to translate it to target X; or 2) I have a
-a language X which I would like to extend with dependent types.  Both
-scenarios are possible with the presented work, and to our knowledge
-this was not tried before.
+Our main objective is to demonstrate how to define a *dependently-typed DSL*
+without implementing a full typechecker, as you share one with Agda. Extraction
+allows us to translate our DSL to a target language for further execution. We
+expect two possible scenarios: 1) translating an existing (dependently typed)
+DSL to target X; or 2) extend existing language X with dependent types. Both
+scenarios are possible by our approach, and are novel to the best of our
+knowledge.
 
-## General principles and correctness
+## Shallow embedding and its semantics (reviewers A and B)
 
-As our main focus is to provide all the means to write an extractor,
-the question of correctness (in some sense) is orthogonal ---
-one is free to make it as correct or incorrect as one pleases.
+For the purpose of this paper, we define any Agda term that is recognized by
+the extractor to be part of the embedded language (as noted on line 315).
+Moreover, the semantics of the embedded language is obtained by restricting the
+semantics of Agda to this subset. The writer of the extractor thus has full
+control over what parts of Agda to include or exclude.
 
-So far we can state that, as long as you trust that Agda type system
-is sound:
-  1. an embedded language has a sound type system (as it is a subset
-     of Agda);
-  2. programs in the embedded languages have expected properties
-     of progress and preservation (as they can be executed within Agda)
-  3. given that the extractor preserves the dynamic semantics of Agda:
-     - static semantics is encoded using assertions;
-     - if an entire program is extracted from Agda, these assertions
-       shall never be triggered at runtime;
-     - when extracting partial programs, assertions can only fire at
-       the boundaries with unsafe code.
+## Lack of theory or general principles (reviewers A and B)
 
-Ideally, we would want to write a theorem in Agda that the given
-extractor preserves the semantics.  For that one needs to relate the
-semantics of reflected terms with the semantics of the language we
-are extracting to.  Unfortunately, at the time of writing there is
-no official semantics for Agda reflected terms.  While in principle
-it is possible to come up with one manually, we believe that reflection
-system should give us the one we could actually trust.  This is our
-future work.
+Despite our focus on the practical parts of writing custom extractors, this
+does not mean our approach does not care about the semantics. In particular,
+the extractor maps the reflected Agda syntax of the embedded language to the
+target language, and inserts assertions corresponding to the static guarantees
+of Agda's type system. Hence, given an extractor that preserves the dynamic
+semantics of the embedded language, soundness of the Agda type system
+guarantees that none of the inserted assertions will be triggered at run-time.
+When only part of a program is extracted from Agda, assertions can only fire at
+the boundaries with unsafe code.
 
-## Shallow embedding and its semantics
+Correctness of our approach thus relies on the preservation of the dynamic
+semantics by the extractor code. Ideally we would like to prove this as a
+theorem in Agda, but this is not yet possible as there is no formal semantics
+for Agda reflected terms (see future work section).
 
-One challenge with a shallowly embedded language is how to formally define
-which terms of the host language actually form the embedding.  While we do
-not have any syntactical means to do so, as we state in line 315, any Agda
-term that is recognised by the extractor is considered to be the part of
-the embedded language.  In that sense, semantics of the embedding is always
-given by the semantics of Agda, and the language itself is defined by the
-extractor.
+## Pull Requests inclusion in the paper (all reviewers)
 
-## Pull Requests inclusion in the paper
+Our reason for including links to PRs is because we consider them essential to
+the work presented in the paper. The important thing is not how they are
+implemented (as this will be different for each host language), but rather what
+features are required for our approach to reflection-based extraction. In
+particular, we need:
 
-We consider the changes that we made to Agda essential to the work that we
-present in the paper.  As our approach has not been tried before, obviously
-some required functionality is lacking, so we fixed it.  As for inclusion
-in the paper, unfortunately we didn't find a better way of presenting these,
-and according to our read of the definition of "lightweight double-blind"
-inclusion of the links seem to be acceptable as we do not expose our names
-or institutions, and as the work has been done specifically for this paper
-we did not have to address it in third person.
+- access to the full type and typing context of a given term,
 
-We summarise the changes that we did to Agda's reflection system:
-  - allow accessing the actual typing context (telescope) of the given term;
-  - selective reduction and normalisation of the terms;
-  - access typing information of the implicit arguments after normalisation
-    -- the most challenging change.
+- the ability to selectively normalise certain functions while keeping others
+untouched,
+
+- access to transient terms that are erased from the syntax but can be
+reconstructed from the type.
+
+As our approach has not been tried before, some functionality was lacking so we
+had to add it. However, none of this is specific to a particular extractor (or
+even specific to extraction in general), so it only needs to be done once.
+
+According to our interpretation of the requirements of "lightweight
+double-blind", inclusion of these links seems to be acceptable: they do not
+expose our names or institutions, and as the work has been done specifically
+for this paper we did not have to address it in third person. We apologize if
+this differs from the intended interpretation.
+
+
 
 
 # Part2: Remaining concerns
