@@ -72,6 +72,7 @@ this differs from the intended interpretation.
 
 # Part2: Remaining concerns
 
+## Review #150A
 
 > For the author response, please respond to the next two paragraphs
 > especially.
@@ -135,101 +136,94 @@ author of the extractor.
 
 Of course, thank you for the reference, we are happy to include it in the paper.
 
+## Review #150B
 
+> - The introduction talks about the ability to "write a verified program
+>   hand-in-hand with an executor for it" (line 43; maybe you meant
+>   "extractor"?)),
 
-Review #150B
-===========================================================================
+It seems that "executor" is adequate, as we assume to extract the code into
+a language that can compile/run the extracted piece of code.
 
-Overall merit
--------------
-C. I would not accept this paper but will not argue strongly against
-   accepting it.
+>   but this paper doesn't seem to include any semantics for the
+>   languages.
 
-Reviewer expertise
-------------------
-Z. Some familiarity
+See part 1: embedded language is a subset of Agda, therefore it shares Agda's
+semantics.
 
-Paper summary
--------------
-This paper explores some applications of using reflection to implement code
-extraction to embedded languages.  The idea is to use reflections facilities to
-enable the translation of (subsets of) the host language (in this case, Agda)
-into an embedded language.  Such a translation might require both type and term
-translation, and might also require the generated code to include dynamic checks
-to reconcile the expressive dependend types of the host with those of the
-target.  The paper presents several case studies, including a translation of
-Agda to Kaleidoscope (a toy language included as an example from the LLVM
-framework), to a simple array language, and to APL.
+>   The "verification results" seem to be very limited in nature --
+>   providing, e.g., some additional guarantees on top of APL's weak shape-based
+>   type system.
 
-Comments for author
--------------------
-# Review
+This is more "correct-by-construction programming" rather than classical verification.
+As dependent types can encode virtually any constraints on terms, the type system
+guarantees that these hold statically, and extractor preserves (modulo extractor
+correctness) these constraints in the generated code, we can talk about a verified
+program.
 
-I had a very hard time getting anything out of this paper.  The authors espouse
-the benefits of combining "shallow" and "deep" embeddings, ostensibly with the
-purposes of doing things like verified extraction or code transformations, but
-the paper doesn't really deliver on that promise.  Moreover, I found the
-presentation very confusing.  I cannot support this paper for acceptance.
+>   Moreover, since assertations that capture those stronger
+>   constraints are propagated into the output, I would expect there to be some
+>   kind of theorem stating that those assertaions are never triggered (under
+>   reasonable assumptions).  There aren't (as far as I can see), and explicitly
+>   stated correctness or verification theorems mentioned in the paper. Is
+>   there  some kind of correctness guarantee that you get when translating from
+>   APL to SaC via your infrastructure?
 
-# Comments
+See Part 1.
 
-- The introduction talks about the ability to "write a verified program
-  hand-in-hand with an executor for it" (line 43; maybe you meant
-  "extractor"?)), but this paper doesn't seem to include any semantics for the
-  languages.  The "verification results" seem to be very limited in nature --
-  providing, e.g., some additional guarantees on top of APL's weak shape-based
-  type system.  Moreover, since assertations that capture those stronger
-  constraints are propagated into the output, I would expect there to be some
-  kind of theorem stating that those assertaions are never triggered (under
-  reasonable assumptions).  There aren't (as far as I can see), and explicitly
-  stated correctness or verification theorems mentioned in the paper. Is
-  there  some kind of correctness guarantee that you get when translating from
-  APL to SaC via your infrastructure?
+> - I'm not sure that I would consider the encodings of Kaleidoscope or SaC in
+>   this paper as "shallow embeddings": my understanding is that a shallow
+>   embedding uses the features of the host language (in this case, Agda) to
+>   implement the _semantics_ of the embedded language (often using host-level
+>   functions to represent embedding-level variable binding, etc.).  However, I
+>   didn't see any semantics ascribed to Kaleidoscope, and only minimally so for
+>   SaC.  It looks like this code doesn't do much more than provide the abstract
+>   syntax for the embedded languages in question -- based on the definitions in
+>   this paper could you prove anything about the behavior of a program extracted
+>   to Kaleidoscope?  The APL embedding seems like a true embedded language in the
+>   sense that its semantics are implemened in Agda.
 
-- I'm not sure that I would consider the encodings of Kaleidoscope or SaC in
-  this paper as "shallow embeddings": my understanding is that a shallow
-  embedding uses the features of the host language (in this case, Agda) to
-  implement the _semantics_ of the embedded language (often using host-level
-  functions to represent embedding-level variable binding, etc.).  However, I
-  didn't see any semantics ascribed to Kaleidoscope, and only minimally so for
-  SaC.  It looks like this code doesn't do much more than provide the abstract
-  syntax for the embedded languages in question -- based on the definitions in
-  this paper could you prove anything about the behavior of a program extracted
-  to Kaleidoscope?  The APL embedding seems like a true embedded language in the
-  sense that its semantics are implemened in Agda.
+Additionally to explanations in Part 1, all the three languages share Agda's semantics.
+However, it happened so, that many Kaleidoscope and SaC constructs, such as Nat,
+arithmetic expressions, functions, etc. are also built-in Agda's constructs.
+Therefore, there is no obvious Agda function that implements some embedded structure.
+However, reflection makes the entire Agda AST available, therefore as long as
+Agda terms have semantics, so does the embedding.
 
-- In several places, the paper mentions limitations of Agda's reflection API
-  that were changed or enhanced while doing this work (e.g. paragraphs near line
-  332, 362, 829), but these are mentioned mostly in passing and not described in
-  enough detail to be meanginful in any way to the reader.  Pointing to github
-  pull requests is not appropriate for a scholarly paper (and isn't kosher for
-  double-blind reviewing).  These anecdotes made me wonder what the point of
-  this paper is, since it's apparently *not* intended to explain any of the
-  technical details involved with these changes.
+> - In several places, the paper mentions limitations of Agda's reflection API
+>   that were changed or enhanced while doing this work (e.g. paragraphs near line
+>   332, 362, 829), but these are mentioned mostly in passing and not described in
+>   enough detail to be meanginful in any way to the reader.  Pointing to github
+>   pull requests is not appropriate for a scholarly paper (and isn't kosher for
+>   double-blind reviewing).  These anecdotes made me wonder what the point of
+>   this paper is, since it's apparently *not* intended to explain any of the
+>   technical details involved with these changes.
 
-- The translation of reflected terms into Kaleidoscope doesn't seem to be that
-  complicated, but I would have appreciated if the discussion starting at line
-  557 had walked though the code of `kompile-term` a bit more explicitly.
+See Part 1.
+ 
+> - The translation of reflected terms into Kaleidoscope doesn't seem to be that
+>   complicated, but I would have appreciated if the discussion starting at line
+>   557 had walked though the code of `kompile-term` a bit more explicitly.
 
-# Details
+We are happy to adjust this bit of the paper.
 
-- line 184: says that the primitives are `quote` and `unquote` and that they
-  operate "as follows", but the subsequent code uses `macro` and `quote` has
-  already been explained above.
+> - line 355: This definition of decidable equality is unintelligible to a reader
+>   with no Agda experience.  (Also, it might be good to mention earlier that it's
+>   common for Agda identifiers to include symbols that are usualy considered
+>   reserved).
 
-- line 331: "contains any about strings" $\to$ "contains any strings"
+Happy to expand on this as well.
 
-- line 355: This definition of decidable equality is unintelligible to a reader
-  with no Agda experience.  (Also, it might be good to mention earlier that it's
-  common for Agda identifiers to include symbols that are usualy considered
-  reserved).
+> - line 789: The "lx type is a type of valid indices..." should probably be "lx d s type is..."
 
-- line 787:
-
-- line 789: The "lx type is a type of valid indices..." should probably be "lx d s type is..."
+You are right, however it is common to use "type" and "type family" interchangeably.
+We are happy to clarify this.
 
 - line 1208: Seems pretty late in the paper to bury the lede about not *really* doing any kind of verification.
 
+This is because our main focus was on providing the framework in which it is
+possible to define such embeddings in the first place.  When we extract Ocaml
+from Coq it is as unverified as what we propose.
 
 
 Review #150C
