@@ -226,57 +226,32 @@ possible to define such embeddings in the first place.  When we extract Ocaml
 from Coq it is as unverified as what we propose.
 
 
-Review #150C
-===========================================================================
+## Review #150C
 
-Overall merit
--------------
-A. I will champion accepting this paper.
+> What I'm less convinced by
+> is the ease of use for the _implementor_. In particular, promises of the introduction
+> like "No need to touch internals of the host language" are true only in spirit. Yes,
+> in a language with ideal reflection capabilities what the authors describe would be
+> even more convenient than described in the paper, but even for this work the authors
+> had to submit multiple pull requests to change Agda internals and expose additional
+> capabilities. A deep embedding for Kaleidoscope for example sounds simple enough to be
+> much more natural to implement - but I guess then you wouldn't enjoy the ease-of-use
+> that we're seeing here.
 
-Reviewer expertise
-------------------
-Y. Knowledgeable
+Yes, you are right.  However, as we are trying a novel approach that hasn't been tried
+before (to our knowledge), we don't expect all the necessary API to be present.
+As you can see from Part 1, our extensions are not language-specific.  They are
+of a general nature, and given a few more language embeddings will be tried out,
+the API should stabilise rather quickly.
 
-Paper summary
--------------
-This paper attempts to answer the choice between shallow and deep embeddings
-(in particular in a dependently typed context), by refusing to answer the question
-in the first place. Instead, the authors rely on compile-time metaprogramming facilities
-in a host language to specify a subset of the host language (in this case Agda) that
-serves as the shallow-ish embedding that can be extracted to the target language of choice,
-while still allowing for reasoning about its code using all the convenience of a
-language like Agda. The paper then proceeds to give two extensive and convincing case
-studies using this approach.
+> - L. 27: Not the canonical citation for Coq I think. Usually people reach for
+>   the reference manual
 
-Comments for author
--------------------
-This paper was _really_ fun to read. It opens with an intriguing idea - can we use
-reflection facilities in a dependently typed language - to get the best out of both
-worlds: those of shallow and deep embeddings. And it technically delivers that!
-The 2/2.5 case studies presented demonstrate convincingly that this is a viable
-approach - the matrix multiplication example in particular is an excellent
-demonstration that _users_ of the embedding can enjoy strong static guarantees
-in a seamless manner like in a shallow embedding. What I'm less convinced by
-is the ease of use for the _implementor_. In particular, promises of the introduction
-like "No need to touch internals of the host language" are true only in spirit. Yes,
-in a language with ideal reflection capabilities what the authors describe would be
-even more convenient than described in the paper, but even for this work the authors
-had to submit multiple pull requests to change Agda internals and expose additional
-capabilities. A deep embedding for Kaleidoscope for example sounds simple enough to be
-much more natural to implement - but I guess then you wouldn't enjoy the ease-of-use
-that we're seeing here.
+Thanks, happy to adjust that.
 
-Still, even though the paper reads like a tour-de-force in Agda-fu, it is really well written,
-with multiple carefully selected and well explained examples. Do I think that after
-reading this paper I will be reaching when implementing my next DSL for this technique
-(or even that I'm able to reach for this technique without significant investment in
-metaprogramming internals)? Perhaps; probably not. But it is a novel first step taking
-an old dilemma in a very interesting direction, while showing concrete potential.
+> - Pull request links should probably have been elided for the review version
+> (I haven't clicked them yet as of the time of this writing, but I'm assuming
+> the break double blind)
 
-======== Minor ==========
-
-- L. 27: Not the canonical citation for Coq I think. Usually people reach for the reference manual
-
-- Pull request links should probably have been elided for the review version
-(I haven't clicked them yet as of the time of this writing, but I'm assuming the break double blind)
+See Part 1.
 
