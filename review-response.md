@@ -75,7 +75,7 @@ this differs from the intended interpretation.
 
 > For the author response, please respond to the next two paragraphs
 > especially.
-> 
+>
 > Your key contribution is the idea of a "reflection-based extractor" for a
 > "shallowly-embeddable language".  What is the reflection-based extractor for
 > your Kaleidoscope example?  What are its key properties?  Can they be
@@ -84,11 +84,11 @@ this differs from the intended interpretation.
 Reflection based extractor for the Kaleidoscope language is defined in
 `agda-extractor/Kaleid.agda` and it purpose is to translate the chosen
 subset of Agda to Kaleidoscope language.  The key properties of the translator
-is the preservation of dependent types such as Fin, `_<_`, `_>_`, 
+is the preservation of dependent types such as Fin, `_<_`, `_>_`,
 equivalence/inequivalence of natural numbers in the generated code via
 assertions.  Essentially, we have extended the original formulation of
-the Kaleidoscope to include dependent types.  E.g. in our log2 example we ensure
-that the dvivision by zero is impossible, and we also ensure that the
+the Kaleidoscope to include dependent types.  E.g. in our log2 example types ensure
+that the dvivision by zero is impossible, and we know that the extracted
 function terminates (as each Agda function has to terminate).
 
 > Another key contribution is a set of changes to Agda, described in three
@@ -107,30 +107,30 @@ non-trivial languages, we didn't focus too much on the performance aspect
 of the extracted code in the text of the paper.  In some sense it is orthogonal
 to the extraction process.  However, our code carefully follows this paper:
 https://dl.acm.org/doi/10.1145/3315454.3329960
-The paper includes the SaC version of the CNN application, and we created
+The paper includes a SaC version of the CNN application, and we created
 our extractor to produce the code that is as close as possible to the existing
 SaC code.  Unsurprisingly, performance of the SaC code that we generate is
 almost identical to the performance of the SaC code reported in the paper:
 it is 15 and 24 times faster for training and recognition correspondingly,
-when comparing to APL (recall that APL runs in an interpreter, but SaC is
-a compiled language).  However, this result cannot be treated as an exhaustive
+when comparing to APL (recall that APL is an interpreter, but SaC is
+a compiled language).  However, this result should not be treated as an exhaustive
 set of measurements, as it is coming from a single example on a single machine.
 
 > Can you say anything about what's like to program in these shallow
 > embeddings?  Are the error messages readable?  Could they be customised to
 > the embedded language?
 
-There are two types of error messages that can be triggered: i) Agda error messages that
-can't be specific to the embedded DSL; ii) error messages coming from the extractor.
-The latter is fully programmable; and as Agda gives basic capabilities to format
-terms and report a custom error, these can be made as precise as needed by the
+There are two types of error messages that can be triggered: i) Agda error messages;
+ii) error messages coming from the extractor.  The former can't be specific to the
+embedded DSL.  The latter is fully programmable; and as Agda includes basic capabilities
+to format terms and report custom errors, these can be made as precise as needed by the
 author of the extractor.  Practically, as long as functions are reasonably sized
 (as in our case) the error messages are readable.
 
 > Since their deep versus shallow terminology is in the title, you should cite
 > the paper that originated the distinction between deep and shallow
 > embeddings:
-> 
+>
 > Richard J. Boulton, Andrew D. Gordon, Michael J. C. Gordon, John Harrison,
 > John Herbert, John Van Tassel: Experience with Embedding Hardware Description
 > Languages in HOL. TPCD 1992: 129-156
@@ -201,28 +201,27 @@ Agda terms have semantics, so does the embedding.
 >   technical details involved with these changes.
 
 See Part 1.
- 
+
 > - The translation of reflected terms into Kaleidoscope doesn't seem to be that
 >   complicated, but I would have appreciated if the discussion starting at line
 >   557 had walked though the code of `kompile-term` a bit more explicitly.
 
-We are happy to adjust this bit of the paper.
+We will adjust this bit of the paper.
 
 > - line 355: This definition of decidable equality is unintelligible to a reader
 >   with no Agda experience.  (Also, it might be good to mention earlier that it's
 >   common for Agda identifiers to include symbols that are usualy considered
 >   reserved).
 
-Happy to expand on this as well.
+We are happy to expand on this.
 
 > - line 789: The "lx type is a type of valid indices..." should probably be "lx d s type is..."
 
-You are right, however it is common to use "type" and "type family" interchangeably.
-We are happy to clarify this.
+You are right. We used "type" and "type family" interchangeably.  We will clarify this.
 
 - line 1208: Seems pretty late in the paper to bury the lede about not *really* doing any kind of verification.
 
-This is because our main focus was on providing the framework in which it is
+This is because our main focus is to provide the framework in which it is
 possible to define such embeddings in the first place.  When we extract Ocaml
 from Coq it is as unverified as what we propose.
 
