@@ -625,8 +625,8 @@ _↓_ : ∀ {a}{X : Set a}{n s}
     → {pf : (s→a s) ≥a sh}
     → Ar X n $ a→s $ (s→a s - sh) {≥ = pf}
 _↓_ {s = s} sh (imap x) {pf} with
-                             let p = prod $ a→s $ (s→a s - sh) {≥ = pf}
-                             in  p N.≟ 0
+                             (prod $ a→s $ (s→a s - sh) {≥ = pf})
+                             N.≟ 0
 _↓_ {s = s} sh       (imap f) {pf} | yes Π≡0 = mkempty _ Π≡0
 _↓_ {s = s} (imap q) (imap f) {pf} | no  Π≢0 = imap mkdrop
   where
