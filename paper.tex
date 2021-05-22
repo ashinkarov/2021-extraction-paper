@@ -59,9 +59,12 @@
 % makes sure that there is no comma after e.g. or i.e.
 \usepackage[all,british]{foreign}
 
-\usepackage{fontspec}
-\defaultfontfeatures{Scale=MatchLowercase}
-\setmonofont{DejaVu Sans Mono}
+% \usepackage{amsmath}
+% \usepackage{fontspec}
+% \defaultfontfeatures{Scale=MatchLowercase}
+% \setmonofont{DejaVu Sans Mono}
+
+
 %% poor man's solution for the DejaVu font:
 %\setmonofont[Color={0019D4},ExternalLocation]{DejaVuSansMono.ttf}
 
@@ -71,9 +74,11 @@
 % %\tolerance=400      % default 200
 
 
-\newcommand*{\aplfont}{\defaultfontfeatures{Scale=MatchLowercase}%
-    \setmonofont[Color={0019D4}]{DejaVu Sans Mono}}
-\newcommand{\apl}[1]{{\aplfont\texttt{#1}}}
+% \newcommand*{\aplfont}{\defaultfontfeatures{Scale=MatchLowercase}%
+%     \setmonofont[Color={0019D4}]{DejaVu Sans Mono}}
+%\newcommand{\apl}[1]{{\aplfont\texttt{#1}}}
+\definecolor{MyBlue}{HTML}{0019D4}
+\newcommand{\apl}[1]{{\textcolor{MyBlue}{\texttt{#1}}}}
 
 %\newfontfamily{djvufont}{DejaVu Sans Mono}
 %\newfontfamily\consolas{DejaVu Sans Mono}
@@ -87,6 +92,25 @@
 \usepackage{agda}
 \usepackage{newunicodechar}
 \usepackage[final]{listings}
+
+\usepackage{microtype}
+
+
+\makeatletter
+\newcommand{\centersymbol}[2]{%
+  \mathrel{\vphantom{#1#2}\mathpalette\center@symbol{{#1}{#2}}}%
+}
+\newcommand{\center@symbol}[2]{%
+  \center@@symbol{#1}#2%
+}
+\newcommand{\center@@symbol}[3]{%
+  \ooalign{\hss$#1\m@th#2$\hss\cr\hss$#1\m@th#3$\hss\cr}%
+}
+\makeatother
+
+\newcommand{\APLrot}{\centersymbol{|}{\circ}}
+\newcommand{\APLtrans}{\centersymbol{\backslash}{\circ}}
+\newcommand{\APLredfirst}{\centersymbol{/}{-}}
 
 
 \newunicodechar{∷}{::}
@@ -104,7 +128,60 @@
 \newunicodechar{∸}{\ensuremath{\dot{-}}}
 \newunicodechar{⊛}{\ensuremath{\circledast}}
 \newunicodechar{ᵀ}{\ensuremath{{}^{\text{T}}}}
-\newunicodechar{⌿}{\ensuremath{\not-}}
+%\newunicodechar{⌿}{\ensuremath{\not-}}
+\newunicodechar{⌿}{\ensuremath{\APLredfirst}}
+\newunicodechar{ℕ}{\ensuremath{\mathbb{N}}}
+\newunicodechar{∀}{\ensuremath{\forall}}
+\newunicodechar{≡}{\ensuremath{\equiv}}
+\newunicodechar{ℓ}{\ensuremath{\ell}}
+\newunicodechar{⊤}{\ensuremath{\top}}
+\newunicodechar{⋯}{\ensuremath{\cdots}}
+\newunicodechar{₅}{\ensuremath{_5}}
+\newunicodechar{₂}{\ensuremath{_2}}
+\newunicodechar{₁}{\ensuremath{_1}}
+\newunicodechar{₀}{\ensuremath{_0}}
+\newunicodechar{₈}{\ensuremath{_8}}
+\newunicodechar{₃}{\ensuremath{_3}}
+\newunicodechar{₄}{\ensuremath{_4}}
+\newunicodechar{₆}{\ensuremath{_6}}
+\newunicodechar{₇}{\ensuremath{_7}}
+\newunicodechar{′}{{'}}
+\newunicodechar{ᵇ}{\ensuremath{^b}}
+\newunicodechar{⇒}{\ensuremath{\implies}}
+\newunicodechar{∃}{\ensuremath{\exists}}
+\newunicodechar{λ}{\ensuremath{\lambda}}
+\newunicodechar{≤}{\ensuremath{\leq}}
+\newunicodechar{≢}{\ensuremath{\nequiv}}
+\newunicodechar{∘}{\ensuremath{\circ}}
+\newunicodechar{⍨}{\ensuremath{\stackrel{..}{\sim}}}
+\newunicodechar{⌽}{\ensuremath{\APLrot}}
+\newunicodechar{⊕}{\ensuremath{\oplus}}
+\newunicodechar{⍵}{\ensuremath{\omega}}
+\newunicodechar{⍺}{\ensuremath{\alpha}}
+\newunicodechar{α}{\ensuremath{\alpha}}
+\newunicodechar{⍤}{\ensuremath{\stackrel{..}{\circ}}}
+\newunicodechar{⍴}{\ensuremath{\rho}}
+\newunicodechar{⋄}{\ensuremath{\diamond}}
+\newunicodechar{⊢}{\ensuremath{\vdash}}
+\newunicodechar{⍉}{\ensuremath{\APLtrans}}
+\newunicodechar{ι}{\ensuremath{\iota}}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
 
 % Some shortcut commands for agda symbols
 \newcommand{\AD}[1]{\AgdaDatatype{#1}}

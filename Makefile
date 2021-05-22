@@ -22,7 +22,7 @@ latex/%.tex : %.lagda
 	$(AGDA) -i. -l agda-arrays --latex $< #--only-scope-checking $<
 
 paper.pdf: $(SRC)
-	TEXINPUTS=./latex:$$TEXINPUTS latexmk -pdf -f -pdflatex='xelatex -halt-on-error' $<
+	TEXINPUTS=./latex:$$TEXINPUTS latexmk -pdf -f -pdflatex='pdflatex -halt-on-error' $<
 	#bibtex $(patsubst %.tex,%,$<) && \
 	#TEXINPUTS=./latex:$$TEXINPUTS xelatex $< ;\
 	#TEXINPUTS=./latex:$$TEXINPUTS xelatex $< ;\
